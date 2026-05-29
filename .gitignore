@@ -1,0 +1,15 @@
+# Excel lock files
+~$*.xlsx
+~$*.xls
+~$*.docx
+
+# Logs
+*.log
+/logs/
+
+# PHP cache
+*.cache
+
+# OS files
+.DS_Store
+Thumbs.db
