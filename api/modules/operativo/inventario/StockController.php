@@ -50,24 +50,24 @@ class StockController
                 COALESCE((
                     SELECT SUM(v.cantidad_kg)
                     FROM ventas v
-                    WHERE v.lote_id = l.id
+                    WHERE v.acopio_id = l.id
                       AND v.estado IN ('borrador','confirmado','en_proceso')
                 ), 0)                                               AS comprometido_kg,
                 -- Stock libre = actual - comprometido
                 l.peso_actual_kg - COALESCE((
                     SELECT SUM(v.cantidad_kg)
                     FROM ventas v
-                    WHERE v.lote_id = l.id
+                    WHERE v.acopio_id = l.id
                       AND v.estado IN ('borrador','confirmado','en_proceso')
                 ), 0)                                               AS stock_libre_kg,
                 la.score_taza, la.clasificacion,
                 l.fecha_acopio
-            FROM lotes l
+            FROM acopios l
             JOIN tipos_cafe tc ON tc.id = l.tipo_cafe_id
             JOIN clientes c    ON c.id  = l.productor_id
             LEFT JOIN laboratorio_analisis la ON la.id = (
                 SELECT id FROM laboratorio_analisis
-                WHERE lote_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
+                WHERE acopio_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
             )
             WHERE {$whereSQL}
             ORDER BY tc.nombre, l.codigo
@@ -89,11 +89,11 @@ class StockController
                 COUNT(l.id)                 AS num_lotes,
                 ROUND(SUM(l.peso_actual_kg), 2) AS stock_total_kg,
                 ROUND(AVG(la.score_taza), 2)    AS score_promedio
-            FROM lotes l
+            FROM acopios l
             JOIN tipos_cafe tc ON tc.id = l.tipo_cafe_id
             LEFT JOIN laboratorio_analisis la ON la.id = (
                 SELECT id FROM laboratorio_analisis
-                WHERE lote_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
+                WHERE acopio_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
             )
             WHERE l.campaña = :campana
             GROUP BY tc.id, l.estado
@@ -105,7 +105,7 @@ class StockController
         $totStmt = $this->db->prepare("
             SELECT ROUND(SUM(l.peso_actual_kg), 2) AS stock_total_kg,
                    COUNT(l.id)                     AS total_lotes
-            FROM lotes l WHERE l.campaña = :campana AND l.estado != 'vendido'
+            FROM acopios l WHERE l.campaña = :campana AND l.estado != 'vendido'
         ");
         $totStmt->execute([':campana' => $campana]);
 
@@ -124,7 +124,7 @@ class StockController
         $limit  = min(200, (int)($_GET['per_page'] ?? 50));
         $offset = ($page - 1) * $limit;
 
-        $count = $this->db->prepare("SELECT COUNT(*) FROM kardex WHERE lote_id = :id");
+        $count = $this->db->prepare("SELECT COUNT(*) FROM kardex WHERE acopio_id = :id");
         $count->execute([':id' => $p['id']]);
         $total = (int)$count->fetchColumn();
 
@@ -133,7 +133,7 @@ class StockController
                    k.cantidad_kg, k.precio_unitario, k.moneda, k.total_monto,
                    k.saldo_kg, k.referencia_tipo, k.usuario, k.creado_en
             FROM kardex k
-            WHERE k.lote_id = :id
+            WHERE k.acopio_id = :id
             ORDER BY k.fecha DESC, k.id DESC
             LIMIT :limit OFFSET :offset
         ");
@@ -159,7 +159,7 @@ class StockController
                        WHEN l.estado = 'acopio'        THEN 'pendiente_proceso'
                        ELSE 'normal'
                    END AS alerta
-            FROM lotes l
+            FROM acopios l
             JOIN tipos_cafe tc ON tc.id = l.tipo_cafe_id
             JOIN clientes c    ON c.id  = l.productor_id
             WHERE l.estado NOT IN ('vendido')

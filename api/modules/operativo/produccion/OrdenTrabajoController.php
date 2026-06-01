@@ -13,7 +13,7 @@ class OrdenTrabajoController
         $this->db = (new Database())->getConnection();
     }
 
-    // GET /produccion/ordenes-trabajo?lote_id=5&estado=en_proceso
+    // GET /produccion/ordenes-trabajo?acopio_id=5&estado=en_proceso
     public function index(): void
     {
         $where  = ['1=1'];
@@ -22,7 +22,7 @@ class OrdenTrabajoController
         $limit  = min(100, (int)($_GET['per_page'] ?? 20));
         $offset = ($page - 1) * $limit;
 
-        foreach (['lote_id' => ':lote', 'estado' => ':estado', 'tipo_proceso' => ':tipo'] as $field => $bind) {
+        foreach (['acopio_id' => ':lote', 'estado' => ':estado', 'tipo_proceso' => ':tipo'] as $field => $bind) {
             if (!empty($_GET[$field])) {
                 $where[]       = "ot.{$field} = {$bind}";
                 $params[$bind] = $_GET[$field];
@@ -36,10 +36,10 @@ class OrdenTrabajoController
         $total = (int)$count->fetchColumn();
 
         $stmt = $this->db->prepare("
-            SELECT ot.*, l.codigo AS lote_codigo, l.peso_actual_kg,
+            SELECT ot.*, l.codigo AS acopio_codigo, l.peso_actual_kg,
                    tc.nombre AS tipo_cafe, c.razon_social AS productor
             FROM ordenes_trabajo ot
-            JOIN lotes l    ON l.id  = ot.lote_id
+            JOIN acopios l    ON l.id  = ot.acopio_id
             JOIN tipos_cafe tc ON tc.id = l.tipo_cafe_id
             JOIN clientes c ON c.id  = l.productor_id
             WHERE {$whereSQL}
@@ -58,10 +58,10 @@ class OrdenTrabajoController
     public function show(array $p): void
     {
         $stmt = $this->db->prepare("
-            SELECT ot.*, l.codigo AS lote_codigo, l.peso_actual_kg,
+            SELECT ot.*, l.codigo AS acopio_codigo, l.peso_actual_kg,
                    tc.nombre AS tipo_cafe, c.razon_social AS productor
             FROM ordenes_trabajo ot
-            JOIN lotes l    ON l.id  = ot.lote_id
+            JOIN acopios l    ON l.id  = ot.acopio_id
             JOIN tipos_cafe tc ON tc.id = l.tipo_cafe_id
             JOIN clientes c ON c.id  = l.productor_id
             WHERE ot.id = :id
@@ -90,15 +90,15 @@ class OrdenTrabajoController
 
         $stmt = $this->db->prepare("
             INSERT INTO ordenes_trabajo
-                (numero, lote_id, plan_maestro_id, tipo_proceso,
+                (numero, acopio_id, plan_maestro_id, tipo_proceso,
                  fecha_inicio, fecha_fin_estimada, operador, maquinaria, notas)
             VALUES
-                (:numero, :lote_id, :plan_id, :tipo,
+                (:numero, :acopio_id, :plan_id, :tipo,
                  :fecha_inicio, :fecha_fin, :operador, :maquinaria, :notas)
         ");
         $stmt->execute([
             ':numero'      => $numero,
-            ':lote_id'     => $data['lote_id'],
+            ':acopio_id'     => $data['acopio_id'],
             ':plan_id'     => $data['plan_maestro_id']    ?? null,
             ':tipo'        => $data['tipo_proceso'],
             ':fecha_inicio'=> $data['fecha_inicio'],
@@ -178,7 +178,7 @@ class OrdenTrabajoController
     private function validate(array $d): array
     {
         $errors = [];
-        if (empty($d['lote_id']))      $errors[] = 'lote_id es requerido';
+        if (empty($d['acopio_id']))      $errors[] = 'acopio_id es requerido';
         if (empty($d['tipo_proceso'])) $errors[] = 'tipo_proceso es requerido';
         if (empty($d['fecha_inicio'])) $errors[] = 'fecha_inicio es requerido';
         $tipos = ['secado','despergaminado','tostado','molido','envasado','seleccion','otro'];

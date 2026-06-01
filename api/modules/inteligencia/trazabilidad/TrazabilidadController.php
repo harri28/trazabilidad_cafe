@@ -1,10 +1,10 @@
 <?php
 /**
  * TrazabilidadController
- * Reportes de trazabilidad completa: por lote, por productor, por cliente/destino.
+ * Reportes de trazabilidad completa: por acopio, por productor, por cliente/destino.
  *
- * GET /trazabilidad/lote/{id}      → línea de tiempo completa de un lote
- * GET /trazabilidad/productor/{id} → todos los lotes de un productor con métricas
+ * GET /trazabilidad/acopio/{id}    → línea de tiempo completa de un acopio
+ * GET /trazabilidad/productor/{id} → todos los acopios de un productor con métricas
  * GET /trazabilidad/cliente/{id}   → todas las compras de un cliente con origen
  * GET /trazabilidad/resumen        → visión general filtrable por campaña
  */
@@ -15,12 +15,12 @@ class TrazabilidadController {
         $this->db = (new Database())->getConnection();
     }
 
-    // ── GET /trazabilidad/lote/{id} ──────────────────────────────────────────
+    // ── GET /trazabilidad/acopio/{id} ────────────────────────────────────────
     // Línea de tiempo completa: acopio → transformaciones → análisis → ventas
-    public function lote(array $params): void {
+    public function acopio(array $params): void {
         $id = (int)$params['id'];
 
-        // Lote base con productor y tipo
+        // Acopio base con productor y tipo
         $stmt = $this->db->prepare("
             SELECT
                 l.*,
@@ -32,7 +32,7 @@ class TrazabilidadController {
                 c.asociacion, c.hectareas,
                 c.telefono      AS productor_telefono,
                 c.email         AS productor_email
-            FROM lotes l
+            FROM acopios l
             JOIN tipos_cafe tc ON tc.id = l.tipo_cafe_id
             JOIN clientes   c  ON c.id  = l.productor_id
             WHERE l.id = :id
@@ -40,15 +40,15 @@ class TrazabilidadController {
         $stmt->execute([':id' => $id]);
         $lote = $stmt->fetch();
 
-        if (!$lote) { Response::error('Lote no encontrado', 404); return; }
+        if (!$lote) { Response::error('Acopio no encontrado', 404); return; }
 
         // Certificaciones
         $stmtC = $this->db->prepare("
             SELECT cc.codigo, cc.nombre,
                    lc.fecha_inicio, lc.fecha_vencimiento, lc.numero_certificado
-            FROM lote_certificaciones lc
+            FROM acopio_certificaciones lc
             JOIN certificaciones_catalogo cc ON cc.id = lc.certificacion_id
-            WHERE lc.lote_id = :id
+            WHERE lc.acopio_id = :id
             ORDER BY cc.nombre
         ");
         $stmtC->execute([':id' => $id]);
@@ -64,7 +64,7 @@ class TrazabilidadController {
                    limpieza_taza, dulzura, defecto_taza,
                    clasificacion, aprobado, notas_catacion
             FROM laboratorio_analisis
-            WHERE lote_id = :id
+            WHERE acopio_id = :id
             ORDER BY fecha_analisis DESC
         ");
         $stmtA->execute([':id' => $id]);
@@ -76,7 +76,7 @@ class TrazabilidadController {
                    peso_entrada_kg, peso_salida_kg, merma_kg, rendimiento_pct,
                    operador, maquinaria, notas
             FROM transformaciones
-            WHERE lote_origen_id = :id
+            WHERE acopio_origen_id = :id
             ORDER BY fecha
         ");
         $stmtT->execute([':id' => $id]);
@@ -93,7 +93,7 @@ class TrazabilidadController {
                    c.pais_destino, c.email AS comprador_email
             FROM ventas v
             JOIN clientes c ON c.id = v.comprador_id
-            WHERE v.lote_id = :id AND v.estado != 'cancelado'
+            WHERE v.acopio_id = :id AND v.estado != 'cancelado'
             ORDER BY v.fecha_contrato
         ");
         $stmtV->execute([':id' => $id]);
@@ -106,21 +106,39 @@ class TrazabilidadController {
                    prima_diferencial, prima_total, saldo_kg,
                    referencia_tipo, usuario, notas
             FROM kardex
-            WHERE lote_id = :id
+            WHERE acopio_id = :id
             ORDER BY creado_en
         ");
         $stmtK->execute([':id' => $id]);
         $kardex = $stmtK->fetchAll();
 
+        // Eventos de trazabilidad
+        $stmtEv = $this->db->prepare("
+            SELECT etapa, evento, detalle, referencia_tipo, referencia_id, usuario,
+                   DATE(creado_en) AS fecha,
+                   creado_en       AS fecha_hora
+            FROM acopio_eventos
+            WHERE acopio_id = :id
+              AND evento <> 'Venta Confirmada'
+            ORDER BY creado_en
+        ");
+        $stmtEv->execute([':id' => $id]);
+        $eventos = $stmtEv->fetchAll();
+
         // Construir línea de tiempo cronológica
         $timeline = [];
 
-        // 1. Acopio (fecha inicial)
-        $timeline[] = [
-            'etapa'   => 'Acopio',
-            'fecha'   => $lote['fecha_acopio'],
-            'detalle' => "Ingreso de {$lote['peso_inicial_kg']} kg — Finca: " . ($lote['finca'] ?? 'N/A'),
-        ];
+        // 1. Eventos de trazabilidad (registro del lote, cambios de estado, etc.)
+        foreach ($eventos as $ev) {
+            $timeline[] = [
+                'etapa'          => $ev['etapa'],
+                'fecha'          => $ev['fecha'],
+                'evento'         => $ev['evento'],
+                'detalle'        => $ev['detalle'],
+                'referencia_tipo'=> $ev['referencia_tipo'],
+                'usuario'        => $ev['usuario'],
+            ];
+        }
 
         // 2. Transformaciones
         foreach ($transformaciones as $t) {
@@ -190,7 +208,7 @@ class TrazabilidadController {
         }
 
         Response::json([
-            'lote'             => $lote,
+            'acopio'           => $lote,
             'productor'        => $productor,
             'linea_tiempo'     => $timeline,
             'certificaciones'  => $certificaciones,
@@ -202,7 +220,7 @@ class TrazabilidadController {
     }
 
     // ── GET /trazabilidad/productor/{id} ─────────────────────────────────────
-    // Todos los lotes del productor con métricas agregadas por campaña
+    // Todos los acopios del productor con métricas agregadas por campaña
     public function productor(array $params): void {
         $id = (int)$params['id'];
 
@@ -232,23 +250,23 @@ class TrazabilidadController {
                 tc.nombre AS tipo_cafe,
                 la.score_taza, la.clasificacion, la.humedad_pct, la.aprobado,
                 (SELECT STRING_AGG(cc.codigo, ', ' ORDER BY cc.codigo)
-                 FROM lote_certificaciones lc
+                 FROM acopio_certificaciones lc
                  JOIN certificaciones_catalogo cc ON cc.id = lc.certificacion_id
-                 WHERE lc.lote_id = l.id) AS certificaciones,
+                 WHERE lc.acopio_id = l.id) AS certificaciones,
                 (SELECT COALESCE(SUM(v2.cantidad_kg), 0)
                  FROM ventas v2
-                 WHERE v2.lote_id = l.id AND v2.estado NOT IN ('cancelado','borrador')) AS kg_vendido,
+                 WHERE v2.acopio_id = l.id AND v2.estado NOT IN ('cancelado','borrador')) AS kg_vendido,
                 (SELECT COALESCE(SUM(v2.total_usd), 0)
                  FROM ventas v2
-                 WHERE v2.lote_id = l.id AND v2.estado NOT IN ('cancelado','borrador')) AS ingresos_usd,
+                 WHERE v2.acopio_id = l.id AND v2.estado NOT IN ('cancelado','borrador')) AS ingresos_usd,
                 (SELECT COUNT(*)
                  FROM ventas v2
-                 WHERE v2.lote_id = l.id AND v2.estado NOT IN ('cancelado','borrador')) AS ventas_count
-            FROM lotes l
+                 WHERE v2.acopio_id = l.id AND v2.estado NOT IN ('cancelado','borrador')) AS ventas_count
+            FROM acopios l
             JOIN tipos_cafe tc ON tc.id = l.tipo_cafe_id
             LEFT JOIN laboratorio_analisis la ON la.id = (
                 SELECT id FROM laboratorio_analisis
-                WHERE lote_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
+                WHERE acopio_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
             )
             WHERE l.productor_id = :id {$whereExtra}
             ORDER BY l.fecha_acopio DESC
@@ -267,10 +285,10 @@ class TrazabilidadController {
                 COALESCE(AVG(la.score_taza), 0)     AS promedio_score_taza,
                 COUNT(DISTINCT l.campaña)            AS total_campanas,
                 STRING_AGG(DISTINCT l.campaña::text, ', ' ORDER BY l.campaña::text DESC) AS campanas
-            FROM lotes l
+            FROM acopios l
             LEFT JOIN laboratorio_analisis la ON la.id = (
                 SELECT id FROM laboratorio_analisis
-                WHERE lote_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
+                WHERE acopio_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
             )
             WHERE l.productor_id = :id {$whereExtra}
         ");
@@ -284,7 +302,7 @@ class TrazabilidadController {
                 COALESCE(SUM(v.total_usd),   0) AS ingresos_totales_usd,
                 COUNT(DISTINCT v.comprador_id)   AS total_compradores
             FROM ventas v
-            JOIN lotes l ON l.id = v.lote_id
+            JOIN acopios l ON l.id = v.acopio_id
             WHERE l.productor_id = :id
               AND v.estado NOT IN ('cancelado','borrador')
               {$whereExtra}
@@ -299,7 +317,7 @@ class TrazabilidadController {
                 SUM(v.cantidad_kg) AS kg_total,
                 SUM(v.total_usd)   AS usd_total
             FROM ventas v
-            JOIN lotes   l ON l.id  = v.lote_id
+            JOIN acopios l ON l.id  = v.acopio_id
             JOIN clientes c ON c.id = v.comprador_id
             WHERE l.productor_id = :id
               AND v.estado NOT IN ('cancelado','borrador')
@@ -362,8 +380,8 @@ class TrazabilidadController {
                 v.cantidad_kg, v.precio_usd_kg, v.total_usd, v.total_local,
                 v.moneda_factura, v.incoterm, v.puerto_embarque,
                 v.humedad_max_pct, v.defectos_max, v.score_min,
-                l.id            AS lote_id,
-                l.codigo        AS lote_codigo,
+                l.id            AS acopio_id,
+                l.codigo        AS acopio_codigo,
                 l.campaña, l.variedad, l.proceso_beneficio,
                 l.finca, l.altitud_msnm AS lote_altitud, l.region,
                 l.peso_inicial_kg, l.peso_actual_kg,
@@ -375,16 +393,16 @@ class TrazabilidadController {
                 la.score_taza, la.clasificacion, la.humedad_pct, la.aprobado,
                 la.fecha_analisis AS fecha_analisis,
                 (SELECT STRING_AGG(cc.codigo, ', ' ORDER BY cc.codigo)
-                 FROM lote_certificaciones lc
+                 FROM acopio_certificaciones lc
                  JOIN certificaciones_catalogo cc ON cc.id = lc.certificacion_id
-                 WHERE lc.lote_id = l.id) AS certificaciones
+                 WHERE lc.acopio_id = l.id) AS certificaciones
             FROM ventas v
-            JOIN lotes     l    ON l.id   = v.lote_id
+            JOIN acopios   l    ON l.id   = v.acopio_id
             JOIN tipos_cafe tc  ON tc.id  = l.tipo_cafe_id
             JOIN clientes   prod ON prod.id = l.productor_id
             LEFT JOIN laboratorio_analisis la ON la.id = (
                 SELECT id FROM laboratorio_analisis
-                WHERE lote_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
+                WHERE acopio_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
             )
             WHERE v.comprador_id = :id {$extraSQL}
             ORDER BY v.fecha_contrato DESC
@@ -403,10 +421,10 @@ class TrazabilidadController {
                 COUNT(DISTINCT l.productor_id)        AS total_productores,
                 STRING_AGG(DISTINCT l.campaña::text, ', ' ORDER BY l.campaña::text DESC) AS campanas
             FROM ventas v
-            JOIN lotes l ON l.id = v.lote_id
+            JOIN acopios l ON l.id = v.acopio_id
             LEFT JOIN laboratorio_analisis la ON la.id = (
                 SELECT id FROM laboratorio_analisis
-                WHERE lote_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
+                WHERE acopio_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
             )
             WHERE v.comprador_id = :id
               AND v.estado NOT IN ('cancelado')
@@ -425,11 +443,11 @@ class TrazabilidadController {
                 SUM(v.total_usd)            AS usd_total,
                 AVG(la.score_taza)          AS promedio_score
             FROM ventas v
-            JOIN lotes      l    ON l.id    = v.lote_id
+            JOIN acopios    l    ON l.id    = v.acopio_id
             JOIN clientes   prod ON prod.id = l.productor_id
             LEFT JOIN laboratorio_analisis la ON la.id = (
                 SELECT id FROM laboratorio_analisis
-                WHERE lote_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
+                WHERE acopio_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
             )
             WHERE v.comprador_id = :id
               AND v.estado NOT IN ('cancelado')
@@ -477,10 +495,10 @@ class TrazabilidadController {
                 COUNT(CASE WHEN l.estado = 'vendido'    THEN 1 END) AS lotes_vendidos,
                 COUNT(CASE WHEN l.estado = 'proceso'    THEN 1 END) AS lotes_en_proceso,
                 COUNT(CASE WHEN l.estado = 'parcial'    THEN 1 END) AS lotes_parciales
-            FROM lotes l
+            FROM acopios l
             LEFT JOIN laboratorio_analisis la ON la.id = (
                 SELECT id FROM laboratorio_analisis
-                WHERE lote_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
+                WHERE acopio_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
             )
             {$whereL}
         ");
@@ -497,7 +515,7 @@ class TrazabilidadController {
                 COALESCE(AVG(v.precio_usd_kg), 0)   AS precio_promedio_usd_kg,
                 COUNT(DISTINCT v.comprador_id)        AS total_compradores
             FROM ventas v
-            JOIN lotes l ON l.id = v.lote_id
+            JOIN acopios l ON l.id = v.acopio_id
             {$whereV}
         ");
         $stmtV->execute($params);
@@ -507,7 +525,7 @@ class TrazabilidadController {
         $stmtEst = $this->db->prepare("
             SELECT v.estado, COUNT(*) AS total, SUM(v.cantidad_kg) AS kg, SUM(v.total_usd) AS usd
             FROM ventas v
-            JOIN lotes l ON l.id = v.lote_id
+            JOIN acopios l ON l.id = v.acopio_id
             {$whereV}
             GROUP BY v.estado
         ");
@@ -521,11 +539,11 @@ class TrazabilidadController {
                 COUNT(DISTINCT l.id)          AS total_lotes,
                 SUM(l.peso_inicial_kg)         AS total_kg,
                 ROUND(AVG(la.score_taza)::numeric, 2) AS score_promedio
-            FROM lotes l
+            FROM acopios l
             JOIN clientes c ON c.id = l.productor_id
             LEFT JOIN laboratorio_analisis la ON la.id = (
                 SELECT id FROM laboratorio_analisis
-                WHERE lote_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
+                WHERE acopio_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
             )
             {$whereL}
             GROUP BY c.id, c.razon_social, c.departamento
@@ -544,7 +562,7 @@ class TrazabilidadController {
                 SUM(v.total_usd)         AS usd_total,
                 SUM(v.total_local)       AS pen_total
             FROM ventas v
-            JOIN lotes    l ON l.id  = v.lote_id
+            JOIN acopios  l ON l.id  = v.acopio_id
             JOIN clientes c ON c.id  = v.comprador_id
             {$whereV}
             GROUP BY c.id, c.razon_social, c.pais_destino
@@ -558,7 +576,7 @@ class TrazabilidadController {
         $stmtCal = $this->db->prepare("
             SELECT la.clasificacion, COUNT(*) AS total, AVG(la.score_taza) AS score_promedio
             FROM laboratorio_analisis la
-            JOIN lotes l ON l.id = la.lote_id
+            JOIN acopios l ON l.id = la.acopio_id
             {$whereL}
             GROUP BY la.clasificacion
             ORDER BY score_promedio DESC

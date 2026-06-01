@@ -3,6 +3,11 @@
 ~$*.xls
 ~$*.docx
 
+# Project Excel files (trazabilidad / acopio / ventas)
+*trazabilidad*.xls*
+*acopio*.xls*
+*ventas*.xls*
+
 # Logs
 *.log
 /logs/
@@ -13,3 +18,37 @@
 # OS files
 .DS_Store
 Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# PHP / Composer
+vendor/
+composer.lock
+
+# XAMPP / uploads / storage
+public/storage
+storage/
+uploads/
+tmp/
+
+# IDEs
+.vscode/
+.idea/
+
+# Node
+node_modules/
+
+# Database
+*.sqlite
+*.sql
+
+# Secrets
+*.key
+*.pem
+
+# Build
+dist/
+build/

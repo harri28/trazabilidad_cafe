@@ -243,11 +243,11 @@ class SunatController
                 comp.email           AS email_comprador,
                 comp.telefono        AS telefono_comprador,
                 comp.direccion       AS direccion_comprador,
-                l.codigo             AS lote_codigo,
+                l.codigo             AS acopio_codigo,
                 l.variedad
             FROM ventas v
             JOIN clientes comp ON comp.id = v.comprador_id
-            JOIN lotes    l    ON l.id    = v.lote_id
+            JOIN acopios  l    ON l.id    = v.acopio_id
             WHERE v.id = :id
         ");
         $stmt->execute([':id' => $id]);

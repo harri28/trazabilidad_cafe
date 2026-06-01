@@ -67,10 +67,10 @@ class ValorizacionController
                                    THEN k.cantidad_kg ELSE 0 END), 0)
                 , 2)                                              AS valorizacion_pen,
                 MAX(k.moneda)                                     AS moneda
-            FROM lotes l
+            FROM acopios l
             JOIN tipos_cafe tc ON tc.id = l.tipo_cafe_id
             JOIN clientes c    ON c.id  = l.productor_id
-            JOIN kardex k      ON k.lote_id = l.id
+            JOIN kardex k      ON k.acopio_id = l.id
             WHERE l.campaña = :campana
               AND l.estado  NOT IN ('vendido')
               AND k.precio_unitario IS NOT NULL
@@ -98,13 +98,13 @@ class ValorizacionController
         // El stock actual corresponde a las ÚLTIMAS entradas
         $stmt = $this->db->prepare("
             SELECT
-                l.id AS lote_id, l.codigo, l.peso_actual_kg AS stock_kg,
+                l.id AS acopio_id, l.codigo, l.peso_actual_kg AS stock_kg,
                 tc.nombre AS tipo_cafe, c.razon_social AS productor,
                 k.fecha, k.cantidad_kg AS entrada_kg, k.precio_unitario, k.moneda
-            FROM lotes l
+            FROM acopios l
             JOIN tipos_cafe tc ON tc.id = l.tipo_cafe_id
             JOIN clientes c    ON c.id  = l.productor_id
-            JOIN kardex k      ON k.lote_id = l.id
+            JOIN kardex k      ON k.acopio_id = l.id
             WHERE l.campaña = :campana
               AND l.estado  NOT IN ('vendido')
               AND k.tipo_movimiento = 'entrada'
@@ -117,12 +117,12 @@ class ValorizacionController
         // Agrupar por lote y simular FIFO
         $lotes = [];
         foreach ($entradas as $e) {
-            $lotes[$e['lote_id']]['codigo']    = $e['codigo'];
-            $lotes[$e['lote_id']]['tipo_cafe'] = $e['tipo_cafe'];
-            $lotes[$e['lote_id']]['productor'] = $e['productor'];
-            $lotes[$e['lote_id']]['stock_kg']  = $e['stock_kg'];
-            $lotes[$e['lote_id']]['moneda']    = $e['moneda'];
-            $lotes[$e['lote_id']]['entradas'][] = [
+            $lotes[$e['acopio_id']]['codigo']    = $e['codigo'];
+            $lotes[$e['acopio_id']]['tipo_cafe'] = $e['tipo_cafe'];
+            $lotes[$e['acopio_id']]['productor'] = $e['productor'];
+            $lotes[$e['acopio_id']]['stock_kg']  = $e['stock_kg'];
+            $lotes[$e['acopio_id']]['moneda']    = $e['moneda'];
+            $lotes[$e['acopio_id']]['entradas'][] = [
                 'fecha'          => $e['fecha'],
                 'cantidad_kg'    => (float)$e['entrada_kg'],
                 'precio_unitario'=> (float)$e['precio_unitario'],
@@ -144,7 +144,7 @@ class ValorizacionController
                 $stockRestante -= $usar;
             }
             $resultado[] = [
-                'lote_id'         => $loteId,
+                'acopio_id'       => $loteId,
                 'codigo'          => $lote['codigo'],
                 'tipo_cafe'       => $lote['tipo_cafe'],
                 'productor'       => $lote['productor'],
@@ -168,7 +168,7 @@ class ValorizacionController
         $stmt = $this->db->prepare("
             SELECT ROUND(SUM(k.total_monto), 2) AS total_costo,
                    ROUND(SUM(l.peso_actual_kg), 2) AS total_kg
-            FROM lotes l JOIN kardex k ON k.lote_id = l.id
+            FROM acopios l JOIN kardex k ON k.acopio_id = l.id
             WHERE l.campaña = :campana AND k.tipo_movimiento = 'entrada'
         ");
         $stmt->execute([':campana' => $campana]);

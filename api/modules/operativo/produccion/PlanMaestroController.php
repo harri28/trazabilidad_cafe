@@ -39,7 +39,7 @@ class PlanMaestroController
                 -- Kg en ventas confirmadas para esta campaña/tipo
                 (SELECT COALESCE(SUM(v.cantidad_kg), 0)
                  FROM ventas v
-                 JOIN lotes l ON l.id = v.lote_id
+                 JOIN acopios l ON l.id = v.acopio_id
                  WHERE l.campaña = pm.campaña
                    AND l.tipo_cafe_id = pm.tipo_cafe_id
                    AND v.estado NOT IN ('cancelado','borrador')) AS kg_comprometidos
@@ -70,7 +70,7 @@ class PlanMaestroController
         $stmtL = $this->db->prepare("
             SELECT l.codigo, l.peso_inicial_kg, l.peso_actual_kg, l.estado,
                    c.razon_social AS productor
-            FROM lotes l
+            FROM acopios l
             JOIN clientes c ON c.id = l.productor_id
             WHERE l.campaña = :campana AND l.tipo_cafe_id = :tipo_id
             ORDER BY l.fecha_acopio
@@ -158,10 +158,10 @@ class PlanMaestroController
                 pm.estado
             FROM plan_maestro pm
             JOIN tipos_cafe tc ON tc.id = pm.tipo_cafe_id
-            LEFT JOIN lotes l   ON l.tipo_cafe_id = pm.tipo_cafe_id
+            LEFT JOIN acopios l   ON l.tipo_cafe_id = pm.tipo_cafe_id
                                 AND l.campaña     = pm.campaña
                                 AND l.estado      NOT IN ('vendido')
-            LEFT JOIN ventas v  ON v.lote_id      = l.id
+            LEFT JOIN ventas v  ON v.acopio_id      = l.id
             WHERE pm.campaña = :campana
             GROUP BY pm.id
         ");

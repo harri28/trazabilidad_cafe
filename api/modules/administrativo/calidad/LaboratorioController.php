@@ -7,14 +7,14 @@ class LaboratorioController {
         $this->db = (new Database())->getConnection();
     }
 
-    // GET /laboratorio?lote_id=5&clasificacion=specialty
+    // GET /laboratorio?acopio_id=5&clasificacion=specialty
     public function index(): void {
         $where  = ['1=1'];
         $params = [];
 
-        if (!empty($_GET['lote_id'])) {
-            $where[] = 'la.lote_id = :lote_id';
-            $params[':lote_id'] = $_GET['lote_id'];
+        if (!empty($_GET['acopio_id'])) {
+            $where[] = 'la.acopio_id = :acopio_id';
+            $params[':acopio_id'] = $_GET['acopio_id'];
         }
         if (!empty($_GET['clasificacion'])) {
             $where[] = 'la.clasificacion = :clasif';
@@ -34,13 +34,13 @@ class LaboratorioController {
         $stmt = $this->db->prepare("
             SELECT
                 la.*,
-                l.codigo        AS lote_codigo,
+                l.codigo        AS acopio_codigo,
                 l.variedad,
                 l.proceso_beneficio,
                 l.productor_id,
                 c.razon_social  AS productor
             FROM laboratorio_analisis la
-            JOIN lotes l    ON l.id = la.lote_id
+            JOIN acopios l    ON l.id = la.acopio_id
             JOIN clientes c ON c.id = l.productor_id
             WHERE {$whereSQL}
             ORDER BY la.fecha_analisis DESC
@@ -52,10 +52,10 @@ class LaboratorioController {
     // GET /laboratorio/{id}
     public function show(array $params): void {
         $stmt = $this->db->prepare("
-            SELECT la.*, l.codigo AS lote_codigo, l.variedad,
+            SELECT la.*, l.codigo AS acopio_codigo, l.variedad,
                    c.razon_social AS productor
             FROM laboratorio_analisis la
-            JOIN lotes l    ON l.id = la.lote_id
+            JOIN acopios l    ON l.id = la.acopio_id
             JOIN clientes c ON c.id = l.productor_id
             WHERE la.id = :id
         ");
@@ -84,14 +84,14 @@ class LaboratorioController {
 
         $stmt = $this->db->prepare("
             INSERT INTO laboratorio_analisis
-                (lote_id, fecha_analisis, analista, laboratorio,
+                (acopio_id, fecha_analisis, analista, laboratorio,
                  humedad_pct, rendimiento_pct, densidad_gr_l,
                  defectos_cat1, defectos_cat2,
                  score_taza, fragancia, aroma, sabor, post_gusto,
                  acidez, cuerpo, uniformidad, balance, limpieza_taza,
                  dulzura, defecto_taza, notas_catacion, aprobado)
             VALUES
-                (:lote_id, :fecha_analisis, :analista, :laboratorio,
+                (:acopio_id, :fecha_analisis, :analista, :laboratorio,
                  :humedad_pct, :rendimiento_pct, :densidad_gr_l,
                  :defectos_cat1, :defectos_cat2,
                  :score_taza, :fragancia, :aroma, :sabor, :post_gusto,
@@ -99,7 +99,7 @@ class LaboratorioController {
                  :dulzura, :defecto_taza, :notas_catacion, :aprobado)
         ");
         $stmt->execute([
-            ':lote_id'        => $data['lote_id'],
+            ':acopio_id'        => $data['acopio_id'],
             ':fecha_analisis' => $data['fecha_analisis'],
             ':analista'       => $data['analista']       ?? null,
             ':laboratorio'    => $data['laboratorio']    ?? 'Interno',
@@ -199,7 +199,7 @@ class LaboratorioController {
                 SUM(CASE WHEN la.clasificacion = 'comercial' THEN 1 ELSE 0 END) AS n_comercial,
                 SUM(CASE WHEN la.aprobado = false            THEN 1 ELSE 0 END) AS n_rechazados
             FROM laboratorio_analisis la
-            JOIN lotes l    ON l.id = la.lote_id
+            JOIN acopios l    ON l.id = la.acopio_id
             JOIN clientes c ON c.id = l.productor_id
             WHERE l.campaña = :campana
             GROUP BY l.variedad, l.productor_id
@@ -211,7 +211,7 @@ class LaboratorioController {
 
     private function validate(array $data): array {
         $errors = [];
-        if (empty($data['lote_id']))       $errors[] = 'lote_id es requerido';
+        if (empty($data['acopio_id']))       $errors[] = 'acopio_id es requerido';
         if (empty($data['fecha_analisis'])) $errors[] = 'fecha_analisis es requerido';
 
         // Validar score SCA (0-100)
@@ -224,10 +224,10 @@ class LaboratorioController {
         }
 
         // Verificar que el lote exista
-        if (!empty($data['lote_id'])) {
-            $stmt = $this->db->prepare("SELECT id FROM lotes WHERE id = :id");
-            $stmt->execute([':id' => $data['lote_id']]);
-            if (!$stmt->fetch()) $errors[] = 'lote_id no existe';
+        if (!empty($data['acopio_id'])) {
+            $stmt = $this->db->prepare("SELECT id FROM acopios WHERE id = :id");
+            $stmt->execute([':id' => $data['acopio_id']]);
+            if (!$stmt->fetch()) $errors[] = 'acopio_id no existe';
         }
         return $errors;
     }

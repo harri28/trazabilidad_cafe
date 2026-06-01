@@ -33,7 +33,7 @@ function closeSidebar() {
 const sectionTitles = {
   dashboard:      'Dashboard',
   clientes:       'Clientes',
-  lotes:          'Lotes de Café',
+  acopios:        'Acopios de Café',
   kardex:         'Trazabilidad',
   laboratorio:    'Laboratorio',
   ventas:         'Ventas',
@@ -49,7 +49,7 @@ const sectionTitles = {
 const sectionGroups = {
   dashboard:      null,
   clientes:       'Operaciones',
-  lotes:          'Operaciones',
+  acopios:        'Operaciones',
   compras:        'Operaciones',
   laboratorio:    'Operaciones',
   kardex:         'Trazabilidad',
@@ -99,7 +99,7 @@ function navTo(name, addHistory = true) {
 
   if (name === 'dashboard')   loadDashboard();
   if (name === 'clientes')    { resetCliTabs(); cargarClientes(); }
-  if (name === 'lotes')       cargarLotes();
+  if (name === 'acopios')     cargarLotes();
   if (name === 'kardex')      cargarKardex();
   if (name === 'laboratorio') { _labProductorId = null; cargarLab(); cargarLotesSelectLab(); }
   if (name === 'ventas')      { cargarVentas(); cargarTasaUSDDisplay(); abrirFormVenta(); }
@@ -225,7 +225,7 @@ async function loadDashboard() {
   const [trazRes, ventasRes, lotesRes] = await Promise.all([
     api('GET', `/trazabilidad/resumen?campana=${campana}`),
     api('GET', '/ventas/dashboard'),
-    api('GET', '/lotes?per_page=6'),
+    api('GET', '/acopios?per_page=6'),
   ]);
 
   const traz   = trazRes.data   || {};
@@ -293,7 +293,7 @@ async function loadDashboard() {
       </td>
       <td>${estadoBadge(l.estado)}</td>
     </tr>
-  `).join('') : emptyRow(7, 'No hay lotes registrados aún');
+  `).join('') : emptyRow(7, 'No hay acopios registrados aún');
 }
 
 function _set(id, val) {
@@ -562,7 +562,7 @@ async function verCliente(id) {
   _drawerClienteId = id;
   const [resC, resL] = await Promise.all([
     api('GET', `/clientes/${id}`),
-    api('GET', `/clientes/${id}/lotes`),
+    api('GET', `/clientes/${id}/acopios`),
   ]);
   const c = resC.data;
   if (!c) return;
@@ -652,72 +652,79 @@ let _loteEditId = null;
 function abrirFormNuevoLote() {
   _loteEditId = null;
   limpiarClienteLote();
-  // Restaurar título y botón
   document.querySelector('#modal-form-lote .modal-title').textContent = '📦 Registrar Acopio de Café';
-  document.getElementById('btn-guardar-lote').textContent = '💾 Registrar Lote';
-  // Mostrar sección de peso/precio (solo al registrar)
+  document.getElementById('btn-guardar-lote').textContent = '💾 Registrar Acopio';
   document.getElementById('lote-campos-nuevos').style.display = '';
-  // Limpiar todos los campos
   ['l-tipo','l-fecha','l-variedad','l-proceso','l-finca','l-altitud',
-   'l-sacos','l-peso','l-rend','l-humedad','l-precio','l-prima',
-   'l-kg-net','l-qq','l-punit','l-total','l-pago-prima']
+   'l-hora','l-sacos','l-peso','l-rend','l-humedad','l-precio','l-prima',
+   'l-kg-net','l-qq','l-punit','l-total','l-pago-prima',
+   'l-dni','l-sector','l-sector-nuevo']
     .forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
       if (el.tagName === 'SELECT') el.selectedIndex = 0;
       else el.value = '';
     });
-  document.getElementById('l-fecha').value = new Date().toISOString().split('T')[0];
+  // Ocultar campo nuevo sector
+  const ns = document.getElementById('l-sector-nuevo');
+  if (ns) ns.style.display = 'none';
+  document.getElementById('l-fecha').value  = new Date().toISOString().split('T')[0];
+  document.getElementById('l-hora').value   = new Date().toTimeString().slice(0,5);
+  document.getElementById('l-sacos').value  = '2.00';
+  // Prima por defecto S/ 0.40
+  document.getElementById('l-prima').value = '0.40';
+  cargarSectoresForm();
   toggleForm('form-lote');
 }
 
 async function cargarLotes() {
   const estado = document.getElementById('f-estado-lote').value;
   const qs = estado ? `estado=${estado}&` : '';
-  const res = await api('GET', `/lotes?${qs}per_page=100`);
+  const res = await api('GET', `/acopios?${qs}per_page=100`);
   const tbody = document.getElementById('tbl-lotes');
   const rows  = res.data || [];
   tbody.innerHTML = rows.length ? rows.map(l => `
-    <tr>
+    <tr class="traz-row" onclick="editarLote(${l.id})" title="Click para editar">
       <td class="mono fw-bold">${l.codigo}</td>
       <td>${l.productor}</td>
       <td>${l.tipo_cafe}</td>
       <td>${l.fecha_acopio}</td>
+      <td>${l.hora_acopio ? l.hora_acopio.slice(0,5) : '—'}</td>
       <td>${fmt(l.peso_inicial_kg)} kg</td>
       <td class="fw-bold">${fmt(l.peso_actual_kg)} kg</td>
-      <td class="text-red">${l.merma_kg ? fmt(l.merma_kg) + ' kg' : '—'}</td>
-      <td>${l.variedad || '—'}</td>
       <td class="fw-bold" style="color:${l.score_taza >= 80 ? 'var(--verde)' : 'var(--text-muted)'}">
         ${l.score_taza || '—'}
       </td>
       <td>${estadoBadge(l.estado)}</td>
-      <td><button class="btn-icon" onclick="editarLote(${l.id})" title="Editar lote">✏️</button></td>
     </tr>
-  `).join('') : emptyRow(11);
+  `).join('') : emptyRow(9);
 
   poblarSelectLotes(rows);
 }
 
 async function editarLote(id) {
-  const res = await api('GET', `/lotes/${id}`);
+  const res = await api('GET', `/acopios/${id}`);
   const l = res.data;
-  if (!l) { toast('No se pudo cargar el lote', true); return; }
+  if (!l) { toast('No se pudo cargar el acopio', true); return; }
 
   _loteEditId = id;
 
   // Cambiar título y botón del modal
-  document.querySelector('#modal-form-lote .modal-title').textContent = '✏️ Editar Lote ' + l.codigo;
+  document.querySelector('#modal-form-lote .modal-title').textContent = '✏️ Editar Acopio ' + l.codigo;
   document.getElementById('btn-guardar-lote').textContent = '💾 Actualizar';
 
   // Rellenar campos editables
-  document.getElementById('l-tipo').value     = l.tipo_cafe_id;
-  document.getElementById('l-fecha').value    = l.fecha_acopio?.slice(0, 10) || '';
-  document.getElementById('l-variedad').value = l.variedad || '';
-  document.getElementById('l-proceso').value  = l.proceso_beneficio || 'lavado';
-  document.getElementById('l-finca').value    = l.finca || '';
-  document.getElementById('l-altitud').value  = l.altitud_msnm || '';
+  document.getElementById('l-tipo').value  = l.tipo_cafe_id;
+  document.getElementById('l-fecha').value = l.fecha_acopio?.slice(0, 10) || '';
+  const horaEl = document.getElementById('l-hora');
+  if (horaEl) horaEl.value = l.hora_acopio ? l.hora_acopio.slice(0,5) : '';
 
-  // Mostrar productor como solo lectura (no se puede cambiar)
+  // Sector
+  await cargarSectoresForm();
+  const selSec = document.getElementById('l-sector');
+  if (selSec && l.region) selSec.value = l.region;
+
+  // Mostrar productor (incluye auto-fill de DNI)
   seleccionarClienteLote({ id: l.productor_id, razon_social: l.productor, ruc_dni: l.productor_ruc || '' });
 
   // Ocultar campos que no aplican en edición (peso, precio, prima)
@@ -772,11 +779,13 @@ function buscarClienteLote(val) {
 }
 
 function seleccionarClienteLote(c) {
-  document.getElementById('l-productor').value          = c.id;
+  document.getElementById('l-productor').value           = c.id;
   document.getElementById('l-prod-sel-name').textContent = c.razon_social;
   document.getElementById('l-prod-sel-ruc').textContent  = c.ruc_dni ? `DNI/RUC: ${c.ruc_dni}` : c.tipo;
 
-  // Auto-rellenar campos del lote con datos del cliente
+  // Auto-rellenar DNI y altitud desde datos del cliente
+  const dniEl = document.getElementById('l-dni');
+  if (dniEl) dniEl.value = c.ruc_dni || '';
   if (c.altitud_msnm) document.getElementById('l-altitud').value = c.altitud_msnm;
 
   document.getElementById('l-prod-search').style.display   = 'none';
@@ -786,13 +795,15 @@ function seleccionarClienteLote(c) {
 }
 
 function limpiarClienteLote() {
-  document.getElementById('l-productor').value            = '';
-  document.getElementById('l-prod-search').value          = '';
-  document.getElementById('l-prod-search').style.display  = '';
+  document.getElementById('l-productor').value             = '';
+  document.getElementById('l-prod-search').value           = '';
+  document.getElementById('l-prod-search').style.display   = '';
   document.getElementById('l-prod-selected').style.display = 'none';
-  document.getElementById('l-prod-results').innerHTML     = '';
-  document.getElementById('l-prod-results').style.display = 'none';
+  document.getElementById('l-prod-results').innerHTML      = '';
+  document.getElementById('l-prod-results').style.display  = 'none';
   document.getElementById('l-prod-notfound').style.display = 'none';
+  const dniEl = document.getElementById('l-dni');
+  if (dniEl) dniEl.value = '';
   document.getElementById('l-prod-search').focus();
 }
 
@@ -802,35 +813,73 @@ function irRegistrarCliente() {
   setTimeout(() => abrirFormCliente(), 250);
 }
 
+// ── Sectores ─────────────────────────────────────────────
+async function cargarSectoresForm() {
+  const sel = document.getElementById('l-sector');
+  if (!sel) return;
+  const res = await api('GET', '/acopios?per_page=500');
+  const rows = res.data || [];
+  const sectores = [...new Set(rows.map(r => r.region).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">— Seleccionar —</option>'
+    + sectores.map(s => `<option value="${s}">${s}</option>`).join('')
+    + '<option value="__nuevo__">+ Registrar nuevo sector...</option>';
+}
+
+function toggleNuevoSector(val) {
+  const sel = document.getElementById('l-sector');
+  const inp = document.getElementById('l-sector-nuevo');
+  if (val === '__nuevo__') {
+    inp.style.display = '';
+    inp.focus();
+    if (sel) sel.value = '__nuevo__';
+  } else {
+    inp.style.display = 'none';
+    inp.value = '';
+  }
+}
+
+function sincronizarSector(val) {
+  // El valor real del sector viene del input de texto cuando se está creando uno nuevo
+}
+
+function getSectorValue() {
+  const sel = document.getElementById('l-sector');
+  const inp = document.getElementById('l-sector-nuevo');
+  if (sel && sel.value === '__nuevo__') return (inp && inp.value.trim()) || null;
+  return (sel && sel.value) || null;
+}
+
 function calcularLote() {
   const kgBrt  = parseFloat(document.getElementById('l-peso').value)   || 0;
-  const rend   = parseFloat(document.getElementById('l-rend').value)   || 0;
+  const sacos  = parseFloat(document.getElementById('l-sacos').value)  || 0;
   const precio = parseFloat(document.getElementById('l-precio').value) || 0;
-  const prima  = parseFloat(document.getElementById('l-prima').value)  || 0;
+  // Prima: usa lo ingresado, o el default 0.40
+  const primaRaw = document.getElementById('l-prima').value;
+  const prima  = primaRaw !== '' ? (parseFloat(primaRaw) || 0) : 0.40;
 
-  const kgNet     = rend > 0 ? kgBrt * rend / 100 : kgBrt;
+  const kgNet     = kgBrt - (sacos * 0.2);
   const qq        = kgNet / 55.2;
   const pUnit     = precio + prima;
   const total     = kgNet * pUnit;
   const pagoPrima = kgNet * prima;
 
-  const setVal = (id, v, dec) => {
+  const setVal = (id, v) => {
     const el = document.getElementById(id);
-    if (el) el.value = v > 0 ? v.toFixed(dec) : '';
+    if (el) el.value = v > 0 ? v.toFixed(2) : '';
   };
-  setVal('l-kg-net',    kgNet,    3);
-  setVal('l-qq',        qq,       4);
-  setVal('l-punit',     pUnit,    3);
-  setVal('l-total',     total,    2);
-  setVal('l-pago-prima',pagoPrima,2);
+  setVal('l-kg-net',    kgNet);
+  setVal('l-qq',        qq);
+  setVal('l-punit',     pUnit);
+  setVal('l-total',     total);
+  setVal('l-pago-prima',pagoPrima);
 }
 
 async function guardarLote() {
   const productorId = document.getElementById('l-productor').value;
   const fechaVal    = document.getElementById('l-fecha').value;
-  const kgBrt       = parseFloat(document.getElementById('l-peso')?.value) || 0;
-  const rendVal     = parseFloat(document.getElementById('l-rend')?.value) || 0;
-  const kgNet       = rendVal > 0 ? kgBrt * rendVal / 100 : kgBrt;
+  const kgBrt       = parseFloat(document.getElementById('l-peso')?.value)  || 0;
+  const sacosVal    = parseFloat(document.getElementById('l-sacos')?.value) || 0;
+  const kgNet       = kgBrt - (sacosVal * 0.2);
 
   if (!productorId)       { toast('Selecciona un productor', true); return; }
   if (!fechaVal)          { toast('Ingresa la fecha de acopio', true); return; }
@@ -840,17 +889,14 @@ async function guardarLote() {
     productor_id:        parseInt(productorId),
     tipo_cafe_id:        parseInt(document.getElementById('l-tipo').value),
     fecha_acopio:        fechaVal,
-    peso_inicial_kg:     kgNet || null,
+    hora_acopio:         document.getElementById('l-hora')?.value || null,
+    peso_inicial_kg:     kgNet > 0 ? kgNet : null,
     peso_bruto_kg:       kgBrt > 0 ? kgBrt : null,
-    sacos:               parseInt(document.getElementById('l-sacos')?.value)   || null,
-    rend_entrada_pct:    rendVal || null,
+    sacos:               sacosVal || null,
     humedad_entrada_pct: parseFloat(document.getElementById('l-humedad')?.value) || null,
-    precio_unitario:     parseFloat(document.getElementById('l-precio')?.value) || null,
-    prima_diferencial:   parseFloat(document.getElementById('l-prima')?.value)  || 0,
-    variedad:            document.getElementById('l-variedad').value || null,
-    proceso_beneficio:   document.getElementById('l-proceso').value,
-    finca:               document.getElementById('l-finca').value    || null,
-    altitud_msnm:        parseFloat(document.getElementById('l-altitud').value) || null,
+    precio_unitario:     parseFloat(document.getElementById('l-precio')?.value)  || null,
+    prima_diferencial:   parseFloat(document.getElementById('l-prima')?.value)   || 0.40,
+    region:              getSectorValue(),
     moneda:              'PEN',
   };
 
@@ -858,20 +904,17 @@ async function guardarLote() {
   if (_loteEditId) {
     // Modo edición — solo campos permitidos por el backend
     const editData = {
-      tipo_cafe_id:      data.tipo_cafe_id,
-      fecha_acopio:      data.fecha_acopio,
-      variedad:          data.variedad,
-      proceso_beneficio: data.proceso_beneficio,
-      finca:             data.finca,
-      altitud_msnm:      data.altitud_msnm,
+      tipo_cafe_id: data.tipo_cafe_id,
+      fecha_acopio: data.fecha_acopio,
+      region:       data.region,
     };
-    res = await api('PUT', `/lotes/${_loteEditId}`, editData);
+    res = await api('PUT', `/acopios/${_loteEditId}`, editData);
   } else {
-    res = await api('POST', '/lotes', data);
+    res = await api('POST', '/acopios', data);
   }
 
   if (res.success) {
-    toast(_loteEditId ? 'Lote actualizado' : 'Lote ' + res.data?.codigo + ' creado');
+    toast(_loteEditId ? 'Acopio actualizado' : 'Acopio ' + res.data?.codigo + ' creado');
     _loteEditId = null;
     cargarLotes();
     toggleForm('form-lote');
@@ -893,7 +936,7 @@ async function cargarKardex() {
   );
 
   const [lotesRes, resumenRes] = await Promise.all([
-    api('GET', `/lotes?${qs}&per_page=200`),
+    api('GET', `/acopios?${qs}&per_page=200`),
     api('GET', '/trazabilidad/resumen'),
   ]);
 
@@ -935,7 +978,7 @@ function renderTrazLotes(lotes) {
       <td class="text-right fw-bold">${fmt(l.peso_actual_kg, 1)}</td>
       <td class="text-right">${l.score_taza ? fmt(l.score_taza, 2) + ' pts' : '—'}</td>
     </tr>
-  `).join('') : emptyRow(8, 'Sin lotes registrados');
+  `).join('') : emptyRow(8, 'Sin acopios registrados');
 }
 
 async function verTrazabilidadLote(id) {
@@ -943,13 +986,13 @@ async function verTrazabilidadLote(id) {
   document.getElementById('traz-detalle').style.display = '';
   document.getElementById('traz-det-contenido').innerHTML = '<div class="loading-msg">Cargando trazabilidad...</div>';
 
-  const res = await api('GET', `/trazabilidad/lote/${id}`);
+  const res = await api('GET', `/trazabilidad/acopio/${id}`);
   if (!res.success) {
     document.getElementById('traz-det-contenido').innerHTML = '<div class="empty-state">Error al cargar los datos del lote.</div>';
     return;
   }
 
-  const { lote, productor, linea_tiempo, certificaciones, analisis_calidad, transformaciones, ventas } = res.data;
+  const { acopio: lote, productor, linea_tiempo, certificaciones, analisis_calidad, transformaciones, ventas } = res.data;
 
   document.getElementById('traz-det-titulo').innerHTML =
     `<span class="page-icon">🔄</span> ${lote.codigo} <span class="traz-det-sub">· ${productor.nombre}</span>`;
@@ -971,6 +1014,14 @@ function renderTrazDetalle(lote, productor, timeline, certs, analisis, transform
     : '—';
 
   // ── Línea de tiempo ───────────────────────────────────────
+  const etapaClass = {
+    'Acopio':       'tl-etapa-acopio',
+    'Transformación':'tl-etapa-transf',
+    'Análisis de Calidad': 'tl-etapa-calidad',
+    'Venta':        'tl-etapa-venta',
+    'Estado':       'tl-etapa-estado',
+    'Estado Venta': 'tl-etapa-estado-venta',
+  };
   const tlRows = (timeline || []).map(paso => {
     let detalle = '';
     if (paso.etapa === 'Acopio') {
@@ -982,11 +1033,15 @@ function renderTrazDetalle(lote, productor, timeline, certs, analisis, transform
       detalle = `Score: ${fmt(paso.score_taza,2)} pts — ${paso.clasificacion || '—'}`
               + ` — Humedad: ${fmt(paso.humedad_pct,1)}% — ${paso.aprobado ? 'Aprobado' : 'No aprobado'}`;
     } else if (paso.etapa === 'Venta') {
-      detalle = `${paso.numero_contrato} — ${paso.comprador} (${paso.pais_destino || '—'})`
-              + ` — ${fmt(paso.cantidad_kg,1)} kg a S/ ${fmt(paso.precio_usd_kg,2)}/kg — ${paso.estado}`;
+      detalle = paso.numero_contrato
+        ? `${paso.numero_contrato} — ${paso.comprador} (${paso.pais_destino || '—'}) — ${fmt(paso.cantidad_kg,1)} kg a S/ ${fmt(paso.precio_usd_kg,2)}/kg — ${paso.estado}`
+        : (paso.detalle || '');
+    } else {
+      detalle = paso.detalle || '';
     }
+    const cls = etapaClass[paso.etapa] || 'tl-etapa-default';
     return `<tr>
-      <td class="rpt-tc">${paso.etapa}</td>
+      <td class="rpt-tc"><span class="tl-etapa-badge ${cls}">${paso.etapa}</span></td>
       <td class="rpt-tc" style="white-space:nowrap">${paso.fecha || '—'}</td>
       <td>${detalle}</td>
     </tr>`;
@@ -1127,11 +1182,11 @@ function renderTrazDetalle(lote, productor, timeline, certs, analisis, transform
     <div class="rpt-wrap">
 
       <div class="rpt-header">
-        <div class="rpt-header-lot">LOTE: ${lote.codigo}</div>
+        <div class="rpt-header-lot">ACOPIO: ${lote.codigo}</div>
         <div class="rpt-header-sub">Razón Social / Nombre: ${productor.nombre}</div>
       </div>
 
-      <div class="rpt-title">TRAZABILIDAD DEL LOTE</div>
+      <div class="rpt-title">TRAZABILIDAD DEL ACOPIO</div>
 
       <div class="rpt-section">
         <div class="rpt-section-head">Información General</div>
@@ -1189,7 +1244,7 @@ function renderTrazDetalle(lote, productor, timeline, certs, analisis, transform
    LABORATORIO
 ══════════════════════════════════════════════════════════ */
 async function cargarLotesSelectLab() {
-  const res = await api('GET', '/lotes?per_page=200');
+  const res = await api('GET', '/acopios?per_page=200');
   const sel = document.getElementById('lab-lote');
   if (!sel) return;
   const rows = (res.data||[]).filter(l => l.estado !== 'vendido');
@@ -1285,7 +1340,7 @@ async function cargarLab() {
         .filter(Boolean).join(' · ');
       return `<div class="lab-item">
         <div class="lab-item-head">
-          <span class="lab-item-lote mono">${a.lote_codigo}</span>
+          <span class="lab-item-lote mono">${a.acopio_codigo}</span>
           <span class="lab-item-productor">${a.productor}</span>
           <span class="lab-item-meta">${metaLab}</span>
           <span class="lab-item-estado">${estado}</span>
@@ -1310,7 +1365,7 @@ async function cargarLab() {
 
 async function guardarAnalisis() {
   const data = {
-    lote_id:         document.getElementById('lab-lote').value,
+    acopio_id:       document.getElementById('lab-lote').value,
     fecha_analisis:  document.getElementById('lab-fecha').value,
     analista:        document.getElementById('lab-analista').value || null,
     laboratorio:     document.getElementById('lab-lab').value || 'Interno',
@@ -1367,6 +1422,8 @@ function accionesBtns(v) {
 
 // ── Carga principal ──────────────────────────────────────
 
+let _ventasData = [];
+
 async function cargarVentas() {
   const estado      = document.getElementById('f-estado-venta').value;
   const desde       = document.getElementById('f-venta-desde').value;
@@ -1379,36 +1436,24 @@ async function cargarVentas() {
     api('GET', '/ventas/dashboard'),
   ]);
 
-  // KPIs generales
+  // KPIs generales (opcionales — sólo si existen en el DOM)
   const r = dash.data?.resumen || {};
-  document.getElementById('vm-total').textContent = r.total_contratos || '0';
-  document.getElementById('vm-conf').textContent  = (parseInt(r.confirmados||0) + parseInt(r.en_proceso||0)) || '0';
-  document.getElementById('vm-usd').textContent   = r.usd_totales ? fmtUSD(r.usd_totales) : '—';
-  document.getElementById('vm-kg').textContent    = r.kg_totales  ? fmt(r.kg_totales, 0) + ' kg' : '—';
-
-  // KPIs SUNAT
+  const _kpi = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  _kpi('vm-total', r.total_contratos || '0');
+  _kpi('vm-conf',  (parseInt(r.confirmados||0) + parseInt(r.en_proceso||0)) || '0');
+  _kpi('vm-usd',   r.usd_totales ? fmtUSD(r.usd_totales) : '—');
+  _kpi('vm-kg',    r.kg_totales  ? fmt(r.kg_totales, 0) + ' kg' : '—');
   const s = dash.data?.sunat || {};
-  document.getElementById('vm-sunat-fact').textContent = s.facturadas      || '0';
-  document.getElementById('vm-sunat-pend').textContent = s.pendientes_factura || '0';
+  _kpi('vm-sunat-fact', s.facturadas           || '0');
+  _kpi('vm-sunat-pend', s.pendientes_factura   || '0');
 
-  // Tabla contratos
-  const tbody = document.getElementById('tbl-ventas');
-  const rows  = ventas.data || [];
-  tbody.innerHTML = rows.length ? rows.map(v => `
-    <tr>
-      <td class="mono fw-bold">${v.numero_contrato}</td>
-      <td>${v.comprador}<br><small class="text-muted">${v.pais_destino || ''}</small></td>
-      <td class="mono small">${v.lote_codigo}<br><small class="text-muted">${v.variedad || ''}</small></td>
-      <td>${v.fecha_contrato}</td>
-      <td class="text-right">${fmt(v.cantidad_kg)} kg</td>
-      <td class="text-right">S/ ${parseFloat(v.precio_usd_kg).toFixed(3)}</td>
-      <td class="fw-bold text-green text-right">${fmtUSD(v.total_usd)}</td>
-      <td class="fw-bold small">${v.incoterm}</td>
-      <td>${estadoBadge(v.estado)}</td>
-      <td>${sunatBadge(v)}</td>
-      <td style="white-space:nowrap">${accionesBtns(v)}</td>
-    </tr>
-  `).join('') : emptyRow(11);
+  _ventasData = ventas.data || [];
+
+  // Limpiar buscador al recargar con filtros
+  const busq = document.getElementById('f-buscar-venta');
+  if (busq) busq.value = '';
+
+  renderHistorialVentas(_ventasData);
 
   // Poblar select de cotizaciones
   const comps = await api('GET', '/clientes?tipo=comprador&per_page=200');
@@ -1417,7 +1462,37 @@ async function cargarVentas() {
   if (cotComp) cotComp.innerHTML = compOpts;
 }
 
+function filtrarHistorialVentas(q) {
+  const fil = q.trim().toLowerCase();
+  const filtradas = fil
+    ? _ventasData.filter(v =>
+        (v.numero_contrato || '').toLowerCase().includes(fil) ||
+        (v.comprador       || '').toLowerCase().includes(fil) ||
+        (v.acopio_codigo     || '').toLowerCase().includes(fil) ||
+        (v.variedad        || '').toLowerCase().includes(fil))
+    : _ventasData;
+  renderHistorialVentas(filtradas);
+}
+
+function renderHistorialVentas(rows) {
+  const tbody = document.getElementById('tbl-ventas');
+  tbody.innerHTML = rows.length ? rows.map(v => `
+    <tr>
+      <td class="mono fw-bold">${v.numero_contrato}</td>
+      <td>${v.comprador}<br><small class="text-muted">${v.pais_destino || ''}</small></td>
+      <td class="mono small">${v.acopio_codigo}<br><small class="text-muted">${v.variedad || ''}</small></td>
+      <td>${v.fecha_contrato}</td>
+      <td class="text-right">${fmt(v.cantidad_kg)} kg</td>
+      <td class="text-right">S/ ${parseFloat(v.precio_usd_kg).toFixed(3)}</td>
+      <td class="fw-bold text-green text-right">${fmtUSD(v.total_usd)}</td>
+      <td><button class="btn btn-sm btn-ghost" onclick="verDetalleVenta(${v.id})">Ver</button></td>
+    </tr>
+  `).join('') : emptyRow(8, 'Sin resultados');
+}
+
 // ── Detalle de venta ─────────────────────────────────────
+
+let _ventaDetalle = null;
 
 async function verDetalleVenta(id) {
   const body = document.getElementById('modal-detalle-venta-body');
@@ -1427,8 +1502,7 @@ async function verDetalleVenta(id) {
   const res = await api('GET', `/ventas/${id}`);
   if (!res.success) { body.innerHTML = `<p class="text-muted" style="padding:20px">Error al cargar detalle.</p>`; return; }
   const v = res.data;
-  const tieneCpe     = !!v.sunat_documento_id;
-  const puedeFacturar = !tieneCpe && ['confirmado','en_proceso','entregado'].includes(v.estado);
+  _ventaDetalle = v;
 
   body.innerHTML = `
     <div class="detalle-grid">
@@ -1439,7 +1513,7 @@ async function verDetalleVenta(id) {
           <tr><th>Estado</th><td>${estadoBadge(v.estado)}</td></tr>
           <tr><th>Comprador</th><td>${v.comprador}</td></tr>
           <tr><th>País Destino</th><td>${v.pais_destino || '—'}</td></tr>
-          <tr><th>Lote</th><td class="mono">${v.lote_codigo} — ${v.variedad || ''}</td></tr>
+          <tr><th>Lote</th><td class="mono">${v.acopio_codigo} — ${v.variedad || ''}</td></tr>
           <tr><th>Productor</th><td>${v.productor}</td></tr>
           <tr><th>Fecha Venta</th><td>${v.fecha_contrato}</td></tr>
           <tr><th>Fecha Entrega</th><td>${v.fecha_entrega || '—'}</td></tr>
@@ -1464,39 +1538,115 @@ async function verDetalleVenta(id) {
           ${v.score_min       ? `<tr><th>Score Mín.</th><td>${v.score_min} pts</td></tr>` : ''}
         </table>
 
-        <div class="detalle-section-title" style="margin-top:18px">🧾 SUNAT / Comprobante Electrónico</div>
-        <div class="sunat-panel">
-          ${tieneCpe ? `
-            <div class="sunat-cpe-info">
-              <span class="sunat-cpe-tipo badge badge-${v.sunat_tipo}">${(v.sunat_tipo||'').toUpperCase()}</span>
-              <span class="sunat-cpe-num mono fw-bold">${v.sunat_serie}-${v.sunat_numero}</span>
-              <span class="badge badge-${v.sunat_estado||'pendiente'}">${v.sunat_estado||'pendiente'}</span>
-            </div>
-            ${v.sunat_cdr_descripcion ? `<div class="sunat-cdr">${v.sunat_cdr_descripcion}</div>` : ''}
-            <div class="sunat-emitido text-muted small">Emitido: ${v.sunat_emitido_en ? v.sunat_emitido_en.substring(0,10) : '—'}</div>
-            <div class="sunat-actions">
-              <button class="btn btn-ghost btn-sm" onclick="consultarCpe(${v.id},true)">🔄 Actualizar CPE</button>
-              ${v.sunat_estado !== 'anulado' ? `<button class="btn btn-sm" style="background:#7f1d1d;color:#fff" onclick="anularCpe(${v.id},true)">🚫 Anular</button>` : ''}
-            </div>
-          ` : `
-            <div class="sunat-empty">Sin comprobante electrónico emitido</div>
-            ${puedeFacturar ? `
-              <div class="sunat-actions">
-                <button class="btn btn-sm" style="background:#dc2626;color:#fff" onclick="emitirFactura(${v.id},true)">🧾 Emitir Factura</button>
-                <button class="btn btn-sm" style="background:#7c3aed;color:#fff" onclick="emitirBoleta(${v.id},true)">📄 Emitir Boleta</button>
-              </div>
-            ` : `<p class="text-muted small" style="margin-top:8px">Confirma la venta primero para habilitar la emisión.</p>`}
-          `}
-        </div>
       </div>
     </div>
     <div class="detalle-actions">
-      ${v.estado === 'borrador'   ? `<button class="btn btn-success" onclick="confirmarVenta(${v.id},true)">✓ Confirmar Venta</button>` : ''}
-      ${v.estado === 'confirmado' ? `<button class="btn btn-sm" style="background:var(--info);color:#fff" onclick="iniciarProceso(${v.id},true)">▶ Iniciar Proceso</button>` : ''}
-      ${v.estado === 'en_proceso' ? `<button class="btn btn-success" onclick="entregarVenta(${v.id},true)">📦 Marcar Entregado</button>` : ''}
+      ${v.estado === 'borrador' ? `<button class="btn btn-success" onclick="confirmarVenta(${v.id},true)">✓ Confirmar Venta</button>` : ''}
       ${!['cancelado','entregado'].includes(v.estado) ? `<button class="btn btn-ghost" onclick="cancelarVenta(${v.id},true)">✕ Cancelar</button>` : ''}
     </div>
   `;
+}
+
+function imprimirDetalleVenta() {
+  const v = _ventaDetalle;
+  if (!v) return;
+
+  const estadoTexto = (v.estado || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Contrato de Venta ${v.numero_contrato}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 24px; }
+    .print-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1E3A4A; padding-bottom: 12px; margin-bottom: 16px; }
+    .print-logo-name { font-size: 15px; font-weight: 700; color: #1E3A4A; }
+    .print-logo-sub  { font-size: 10px; color: #666; margin-top: 2px; }
+    .print-doc-title { text-align: right; }
+    .print-doc-title h1 { font-size: 13px; font-weight: 700; color: #1E3A4A; }
+    .print-doc-num   { font-size: 16px; font-weight: 700; color: #2d7a45; margin-top: 4px; font-family: monospace; }
+    .print-estado    { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 10px; font-weight: 700; text-transform: uppercase; background: #d1fae5; color: #065f46; margin-top: 4px; }
+    .section-title   { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #1E3A4A; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; margin: 16px 0 8px; }
+    .grid-2          { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    table.detail     { width: 100%; border-collapse: collapse; }
+    table.detail tr  { border-bottom: 1px solid #f0f0f0; }
+    table.detail th  { width: 40%; padding: 4px 6px; text-align: left; color: #666; font-weight: 600; font-size: 10px; }
+    table.detail td  { padding: 4px 6px; font-size: 11px; }
+    table.detail td.mono { font-family: monospace; font-weight: 700; }
+    .total-row       { background: #f0fdf4; border-top: 2px solid #2d7a45 !important; }
+    .total-row th    { font-size: 11px; color: #111; }
+    .total-row td    { font-size: 14px; font-weight: 700; color: #2d7a45; }
+    .print-footer    { margin-top: 32px; border-top: 1px solid #d1d5db; padding-top: 10px; display: flex; justify-content: space-between; color: #999; font-size: 9px; }
+    .firma-block     { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    .firma-line      { border-top: 1px solid #333; padding-top: 6px; text-align: center; font-size: 10px; color: #444; }
+    @page  { size: A4 portrait; margin: 18mm 15mm; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="print-header">
+    <div>
+      <div class="print-logo-name">☕ Sistema de Trazabilidad de Café</div>
+      <div class="print-logo-sub">Café de especialidad peruano</div>
+    </div>
+    <div class="print-doc-title">
+      <h1>CONTRATO DE VENTA</h1>
+      <div class="print-doc-num">${v.numero_contrato}</div>
+      <span class="print-estado">${estadoTexto}</span>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="section-title">Datos de la Venta</div>
+      <table class="detail">
+        <tr><th>N° Contrato</th><td class="mono">${v.numero_contrato}</td></tr>
+        <tr><th>Comprador</th><td>${v.comprador || '—'}</td></tr>
+        <tr><th>País Destino</th><td>${v.pais_destino || '—'}</td></tr>
+        <tr><th>Productor</th><td>${v.productor || '—'}</td></tr>
+        <tr><th>Lote</th><td class="mono">${v.acopio_codigo}${v.variedad ? ' — ' + v.variedad : ''}</td></tr>
+        <tr><th>Fecha Venta</th><td>${v.fecha_contrato || '—'}</td></tr>
+        <tr><th>Fecha Entrega</th><td>${v.fecha_entrega || '—'}</td></tr>
+        <tr><th>Incoterm</th><td><strong>${v.incoterm || '—'}</strong></td></tr>
+        <tr><th>Puerto</th><td>${v.puerto_embarque || '—'}</td></tr>
+        ${v.notas ? `<tr><th>Notas</th><td>${v.notas}</td></tr>` : ''}
+      </table>
+    </div>
+    <div>
+      <div class="section-title">Valores Económicos</div>
+      <table class="detail">
+        <tr><th>Cantidad</th><td><strong>${parseFloat(v.cantidad_kg || 0).toLocaleString('es-PE', {minimumFractionDigits:3})} kg</strong></td></tr>
+        <tr><th>Precio S/ /kg</th><td>S/ ${parseFloat(v.precio_usd_kg || 0).toFixed(3)}</td></tr>
+        <tr><th>Tipo de Cambio</th><td>S/ ${parseFloat(v.tipo_cambio || 0).toFixed(4)}</td></tr>
+        <tr><th>Moneda CPE</th><td>${v.moneda_factura || 'USD'}</td></tr>
+        ${v.score_taza   ? `<tr><th>Score Taza</th><td>${v.score_taza} pts${v.clasificacion ? ' — ' + v.clasificacion : ''}</td></tr>` : ''}
+        ${v.humedad_pct  ? `<tr><th>Humedad</th><td>${v.humedad_pct}%</td></tr>` : ''}
+        ${v.humedad_max_pct ? `<tr><th>Humedad Máx.</th><td>${v.humedad_max_pct}%</td></tr>` : ''}
+        ${v.defectos_max    ? `<tr><th>Defectos Máx.</th><td>${v.defectos_max}</td></tr>` : ''}
+        ${v.score_min       ? `<tr><th>Score Mín.</th><td>${v.score_min} pts</td></tr>` : ''}
+        <tr class="total-row"><th>TOTAL S/</th><td>S/ ${parseFloat(v.total_usd || 0).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="firma-block">
+    <div class="firma-line">Firma del Vendedor</div>
+    <div class="firma-line">Firma del Comprador — ${v.comprador || ''}</div>
+  </div>
+
+  <div class="print-footer">
+    <span>Generado: ${new Date().toLocaleDateString('es-PE', {year:'numeric',month:'long',day:'numeric'})}</span>
+    <span>${v.numero_contrato} · Sistema de Trazabilidad de Café</span>
+  </div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=800,height=650');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  win.print();
 }
 
 // ── Form nueva venta — estado y helpers ──────────────────
@@ -1509,15 +1659,15 @@ async function cargarLotesDisponiblesForm() {
   const el = document.getElementById('v-lotes-disponibles');
   if (!el) return;
   el.innerHTML = '<div class="text-muted small" style="padding:6px 0">Cargando lotes…</div>';
-  const data = await api('GET', '/lotes?per_page=200');
-  _lotesDisp = (data.data || []).filter(l => l.estado !== 'vendido');
+  const data = await api('GET', '/acopios?per_page=200');
+  _lotesDisp = (data.data || []).filter(l => l.estado !== 'vendido' && parseFloat(l.peso_actual_kg) > 0);
   renderLotesDisponibles();
 }
 
 function renderLotesDisponibles() {
   const el = document.getElementById('v-lotes-disponibles');
   if (!el) return;
-  const yaAgregados = new Set(_ventaLotes.map(x => x.lote_id));
+  const yaAgregados = new Set(_ventaLotes.map(x => x.acopio_id));
   const disponibles = _lotesDisp.filter(l => !yaAgregados.has(l.id));
   if (!disponibles.length) {
     el.innerHTML = '<div class="text-muted small" style="padding:12px 0;text-align:center">✓ Todos los lotes han sido agregados al carrito.</div>';
@@ -1553,7 +1703,7 @@ function filtrarShop(q) {
   const el = document.getElementById('v-lotes-disponibles');
   if (!el) return;
   const fil = q.trim().toLowerCase();
-  const yaAgregados = new Set(_ventaLotes.map(x => x.lote_id));
+  const yaAgregados = new Set(_ventaLotes.map(x => x.acopio_id));
   const base = _lotesDisp.filter(l => !yaAgregados.has(l.id));
   const resultado = fil
     ? base.filter(l =>
@@ -1599,9 +1749,9 @@ function filtrarShop(q) {
 }
 
 function agregarLoteVenta(l) {
-  if (_ventaLotes.find(x => x.lote_id === l.id)) return;
+  if (_ventaLotes.find(x => x.acopio_id === l.id)) return;
   _ventaLotes.push({
-    lote_id:   l.id,
+    acopio_id: l.id,
     codigo:    l.codigo,
     tipo_cafe: l.tipo_cafe || '',
     variedad:  l.variedad  || '',
@@ -1634,43 +1784,45 @@ function renderLotesVenta() {
       </div>
       ${!count
         ? `<div class="cart-empty">Selecciona un lote del estante para agregarlo</div>`
-        : `<div class="cart-col-header">
-            <span>Lote</span>
-            <div class="cart-col-header-right">
-              <span>kg</span>
-              <span>S/ /kg</span>
-              <span>Subtotal</span>
-              <span></span>
-            </div>
-          </div>` + _ventaLotes.map((l, i) => `
-          <div class="cart-item">
-            <div>
-              <div class="cart-item-code">${l.codigo}</div>
-              <div class="cart-item-tipo">
-                ${[l.tipo_cafe, l.variedad].filter(Boolean).join(' / ') || '—'}
-                &nbsp;·&nbsp;<span style="color:var(--verde);font-weight:700">${fmt(l.stock, 1)} kg disp.</span>
-              </div>
-            </div>
-            <div class="cart-item-controls">
-              <div class="cart-input-wrap">
-                <label>kg</label>
-                <input type="number" value="${l.cantidad || ''}" step="0.001" min="0.001"
-                       onchange="_ventaLotes[${i}].cantidad=parseFloat(this.value)||0;actualizarTotalVenta()">
-              </div>
-              <div class="cart-input-wrap">
-                <label>S/ /kg</label>
-                <input type="number" value="${l.precio || ''}" step="0.0001" placeholder="0.0000"
-                       onchange="_ventaLotes[${i}].precio=parseFloat(this.value)||0;actualizarTotalVenta()">
-              </div>
-              <span class="cart-subtotal" id="vsub-${i}">—</span>
-              <button class="cart-remove-btn" onclick="quitarLoteVenta(${i})" title="Quitar lote">🗑</button>
-            </div>
-          </div>`).join('')}
-      ${count ? `
-        <div class="cart-total-bar">
-          <span class="cart-total-label">TOTAL USD</span>
-          <span class="cart-total-value" id="v-total-usd">—</span>
-        </div>` : ''}
+        : `<table class="cart-table">
+            <thead>
+              <tr>
+                <th>Lote</th>
+                <th>Tipo</th>
+                <th>Variedad</th>
+                <th class="text-right">Stock</th>
+                <th class="text-right">Kg a vender</th>
+                <th class="text-right">S/ /kg</th>
+                <th class="text-right">Subtotal</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${_ventaLotes.map((l, i) => `
+              <tr>
+                <td class="mono fw-bold">${l.codigo}</td>
+                <td class="small">${l.tipo_cafe || '—'}</td>
+                <td class="small">${l.variedad || '—'}</td>
+                <td class="text-right" style="color:var(--verde);font-weight:700">${fmt(l.stock, 1)} kg</td>
+                <td class="text-right">
+                  <input class="cart-input-inline" type="number" value="${l.cantidad || ''}" step="0.001" min="0.001"
+                         onchange="_ventaLotes[${i}].cantidad=parseFloat(this.value)||0;actualizarTotalVenta()">
+                </td>
+                <td class="text-right">
+                  <input class="cart-input-inline" type="number" value="${l.precio || ''}" step="0.0001" placeholder="0.0000"
+                         onchange="_ventaLotes[${i}].precio=parseFloat(this.value)||0;actualizarTotalVenta()">
+                </td>
+                <td class="text-right fw-bold" id="vsub-${i}">—</td>
+                <td class="text-center">
+                  <button class="cart-remove-btn" onclick="quitarLoteVenta(${i})" title="Quitar lote">🗑</button>
+                </td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+          <div class="cart-total-bar">
+            <span class="cart-total-label">TOTAL</span>
+            <span class="cart-total-value" id="v-total-usd">—</span>
+          </div>`}
     </div>`;
 
   if (count) actualizarTotalVenta();
@@ -1711,8 +1863,36 @@ async function buscarCompradorVenta(campo, val) {
         <strong>${c.razon_social}</strong>
         <span class="small text-muted"> · ${c.ruc_dni || '—'}${c.pais_destino ? ' · ' + c.pais_destino : ''}</span>
       </div>`).join('');
-    resEl.style.display = '';
+    resEl.style.display = 'block';
   }, 250);
+}
+
+async function buscarCompradorBtn() {
+  const rucVal = document.getElementById('v-comp-ruc').value.trim();
+  const nomVal = document.getElementById('v-comp-nombre').value.trim();
+  const val    = rucVal || nomVal;
+  const resEl  = document.getElementById('v-comp-results-ruc');
+  const nfEl   = document.getElementById('v-comp-notfound');
+
+  clearTimeout(_compVSearchTimer);
+  document.getElementById('v-comp-results-nombre').style.display = 'none';
+  nfEl.style.display = 'none';
+
+  const url = val.length >= 2
+    ? `/clientes?search=${encodeURIComponent(val)}&per_page=30`
+    : `/clientes?per_page=50`;
+
+  const data = await api('GET', url);
+  const rows = (data.data || []).filter(c => ['comprador', 'ambos'].includes(c.tipo));
+
+  if (!rows.length) { resEl.style.display = 'none'; nfEl.style.display = ''; return; }
+
+  resEl.innerHTML = rows.map(c => `
+    <div class="prod-result-item" onclick='seleccionarCompradorVenta(${JSON.stringify(c)})'>
+      <strong>${c.razon_social}</strong>
+      <span class="small text-muted"> · ${c.ruc_dni || '—'}${c.pais_destino ? ' · ' + c.pais_destino : ''}</span>
+    </div>`).join('');
+  resEl.style.display = 'block';
 }
 
 function ocultarCompResults() {
@@ -1725,37 +1905,26 @@ function ocultarCompResults() {
 }
 
 function seleccionarCompradorVenta(c) {
-  document.getElementById('v-comprador-id').value          = c.id;
-  document.getElementById('v-comp-sel-name').textContent   = c.razon_social;
-  document.getElementById('v-comp-sel-ruc').textContent    = c.ruc_dni ? `DNI/RUC: ${c.ruc_dni}` : (c.pais_destino || '');
-  // Limpiar ambos campos de búsqueda y ocultar dropdowns
-  ['v-comp-nombre', 'v-comp-ruc'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.value = ''; el.style.display = 'none'; }
-  });
+  document.getElementById('v-comprador-id').value = c.id;
+  document.getElementById('v-comp-nombre').value  = c.razon_social || '';
+  document.getElementById('v-comp-ruc').value     = c.ruc_dni || '';
   ['v-comp-results-nombre', 'v-comp-results-ruc'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) { el.style.display = 'none'; }
+    if (el) el.style.display = 'none';
   });
   document.getElementById('v-comp-notfound').style.display = 'none';
-  document.getElementById('v-comp-selected').style.display = 'flex';
+  document.getElementById('v-comp-selected').style.display = 'none';
 }
 
 function limpiarCompradorVenta() {
-  document.getElementById('v-comprador-id').value          = '';
-  document.getElementById('v-comp-selected').style.display = 'none';
-  document.getElementById('v-comp-notfound').style.display = 'none';
-  const sunatCard = document.getElementById('v-comp-sunat-card');
-  if (sunatCard) { sunatCard.style.display = 'none'; sunatCard.innerHTML = ''; }
-  window._sunatClienteTemp = null;
-  ['v-comp-nombre', 'v-comp-ruc'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.value = ''; el.style.display = ''; }
-  });
+  document.getElementById('v-comprador-id').value = '';
+  document.getElementById('v-comp-nombre').value  = '';
+  document.getElementById('v-comp-ruc').value     = '';
   ['v-comp-results-nombre', 'v-comp-results-ruc'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.innerHTML = ''; el.style.display = 'none'; }
   });
+  document.getElementById('v-comp-notfound').style.display = 'none';
 }
 
 async function consultarRucSunat() {
@@ -1882,7 +2051,7 @@ async function guardarVenta() {
     // 1. Crear la venta
     const res = await api('POST', '/ventas', {
       comprador_id:   parseInt(compradorId),
-      lote_id:        l.lote_id,
+      acopio_id:      l.acopio_id,
       fecha_contrato: fecha,
       cantidad_kg:    l.cantidad,
       precio_usd_kg:  l.precio,
@@ -1893,22 +2062,13 @@ async function guardarVenta() {
     const ventaId = res.data.id;
     creadas.push(res.data.numero_contrato);
 
-    // 2. Si se eligió comprobante, confirmar y emitir automáticamente
-    if (cpeTipo && ventaId) {
-      const conf = await api('PUT', `/ventas/${ventaId}/confirmar`);
-      if (conf.success) {
-        const cpe = await api('POST', `/ventas/${ventaId}/${cpeTipo === 'factura' ? 'facturar' : 'boleta'}`);
-        if (cpe.success) cpeOk.push(`${cpeTipo === 'factura' ? 'Factura' : 'Boleta'} ${cpe.data?.serie||''}-${cpe.data?.numero||''}`);
-        else cpeErr.push(`CPE ${l.codigo}: ${cpe.error || 'Error SUNAT'}`);
-      }
-    }
   }
 
   if (creadas.length) toast(`Venta${creadas.length > 1 ? 's' : ''} creada${creadas.length > 1 ? 's' : ''}: ${creadas.join(', ')}`);
   if (cpeOk.length)   toast(cpeOk.join(', ') + ' emitido' + (cpeOk.length > 1 ? 's' : '') + ' en SUNAT');
   if (cpeErr.length)  toast(cpeErr.join(' | '), true);
   if (errores.length) toast(errores.join(' | '), true);
-  if (creadas.length) { abrirFormVenta(); cargarVentas(); }
+  if (creadas.length) { abrirFormVenta(); cargarVentas(); cargarLotesDisponiblesForm(); }
 }
 
 async function confirmarVenta(id, desdeDetalle = false) {
@@ -2000,7 +2160,7 @@ async function cargarPanelSunat() {
     <tr>
       <td class="mono fw-bold">${v.numero_contrato}</td>
       <td>${v.comprador}</td>
-      <td class="mono small">${v.lote_codigo}</td>
+      <td class="mono small">${v.acopio_codigo}</td>
       <td>${v.fecha_contrato}</td>
       <td class="fw-bold text-green">${fmtUSD(v.total_usd)}</td>
       <td>${estadoBadge(v.estado)}</td>
@@ -2040,12 +2200,12 @@ function abrirFormCotizacion() {
   document.getElementById('cot-vence').value = vence;
   // Poblar lotes si no están cargados
   const sel = document.getElementById('cot-lote');
-  if (!sel.options.length) cargarLotesCot();
+  if (!sel.options.length) cargarAcopiosCot();
   toggleForm('form-cotizacion');
 }
 
-async function cargarLotesCot() {
-  const res = await api('GET', '/lotes?per_page=200');
+async function cargarAcopiosCot() {
+  const res = await api('GET', '/acopios?per_page=200');
   const sel = document.getElementById('cot-lote');
   if (!sel) return;
   sel.innerHTML = (res.data||[]).filter(l => l.estado !== 'vendido')
@@ -2073,7 +2233,7 @@ async function cargarCotizaciones() {
     <tr>
       <td class="mono fw-bold">${c.numero}</td>
       <td>${c.comprador || '—'}</td>
-      <td class="mono small">${c.lote_codigo || '—'}</td>
+      <td class="mono small">${c.acopio_codigo || '—'}</td>
       <td>${c.fecha_cotizacion}</td>
       <td>${c.fecha_vencimiento}</td>
       <td class="text-right">${fmt(c.cantidad_kg)} kg</td>
@@ -2093,7 +2253,7 @@ async function cargarCotizaciones() {
 async function guardarCotizacion() {
   const data = {
     comprador_id:      document.getElementById('cot-comprador').value,
-    lote_id:           document.getElementById('cot-lote').value,
+    acopio_id:         document.getElementById('cot-lote').value,
     fecha_cotizacion:  document.getElementById('cot-fecha').value,
     fecha_vencimiento: document.getElementById('cot-vence').value,
     cantidad_kg:       parseFloat(document.getElementById('cot-cantidad').value),
@@ -2133,7 +2293,7 @@ async function rechazarCotizacion(id) {
    PRODUCCIÓN
 ══════════════════════════════════════════════════════════ */
 async function cargarLotsSelectOT() {
-  const res = await api('GET', '/lotes?per_page=200');
+  const res = await api('GET', '/acopios?per_page=200');
   const sel = document.getElementById('ot-lote');
   if (!sel) return;
   const rows = (res.data||[]).filter(l => l.estado !== 'vendido');
@@ -2165,7 +2325,7 @@ async function cargarOTs() {
   tbody.innerHTML = rows.length ? rows.map(o => `
     <tr>
       <td class="mono fw-bold">${o.numero}</td>
-      <td class="mono">${o.lote_codigo}</td>
+      <td class="mono">${o.acopio_codigo}</td>
       <td>${o.tipo_proceso}</td>
       <td>${o.fecha_inicio}</td>
       <td>${o.fecha_fin_estimada || '—'}</td>
@@ -2190,7 +2350,7 @@ async function cargarOTs() {
 
 async function guardarOT() {
   const data = {
-    lote_id:            document.getElementById('ot-lote').value,
+    acopio_id:          document.getElementById('ot-lote').value,
     tipo_proceso:       document.getElementById('ot-tipo').value,
     fecha_inicio:       document.getElementById('ot-fecha-ini').value,
     fecha_fin_estimada: document.getElementById('ot-fecha-fin').value || null,
@@ -2799,7 +2959,7 @@ async function cargarCampanasConfig() {
     // Lotes en campaña activa
     if (activa) {
       try {
-        const lr = await fetch(`${API}/lotes?campana=${activa.año}&per_page=1`);
+        const lr = await fetch(`${API}/acopios?campana=${activa.año}&per_page=1`);
         const ld = await lr.json();
         set('kpi-camp-lotes', ld.pagination?.total ?? '—');
       } catch { set('kpi-camp-lotes', '—'); }
@@ -3277,7 +3437,7 @@ async function cargarVentasCliente(clienteId) {
       <tbody>${rows.map(v => `
         <tr>
           <td class="mono fw-bold">${v.numero_contrato}</td>
-          <td class="mono small">${v.lote_codigo}</td>
+          <td class="mono small">${v.acopio_codigo}</td>
           <td>${v.fecha_contrato}</td>
           <td class="text-right">${fmt(v.cantidad_kg)}</td>
           <td class="text-right fw-bold text-green">${fmtUSD(v.total_usd)}</td>
@@ -3307,7 +3467,7 @@ function filtrarHistorial() {
       <td class="mono fw-bold">${v.numero_contrato}</td>
       <td>${v.comprador}</td>
       <td class="small">${v.pais_destino || '—'}</td>
-      <td class="mono small">${v.lote_codigo}</td>
+      <td class="mono small">${v.acopio_codigo}</td>
       <td>${v.fecha_contrato}</td>
       <td class="text-right">${fmt(v.cantidad_kg)} kg</td>
       <td class="text-right fw-bold text-green">${fmtUSD(v.total_usd)}</td>
@@ -3362,7 +3522,7 @@ async function verReporte(periodo, btn) {
       <td class="mono fw-bold">${v.numero_contrato}</td>
       <td>${v.fecha_contrato}</td>
       <td>${v.comprador}</td>
-      <td class="mono small">${v.lote_codigo}</td>
+      <td class="mono small">${v.acopio_codigo}</td>
       <td class="text-right">${fmt(v.cantidad_kg)} kg</td>
       <td class="text-right">S/ ${parseFloat(v.precio_usd_kg).toFixed(3)}</td>
       <td class="text-right fw-bold text-green">${fmtUSD(v.total_usd)}</td>
@@ -3388,7 +3548,7 @@ function previewWAFormVenta() {
     fecha_contrato:     fecha,
     comprador,
     pais_destino:       '',
-    lote_codigo:        _ventaLotes.map(x => x.codigo).join(', '),
+    acopio_codigo:      _ventaLotes.map(x => x.codigo).join(', '),
     variedad:           _ventaLotes.map(x => x.variedad).filter(Boolean).join(', '),
     cantidad_kg:        _ventaLotes.reduce((s, x) => s + (x.cantidad || 0), 0),
     precio_usd_kg:      l?.precio || 0,
@@ -3409,7 +3569,7 @@ function abrirModalWA(venta) {
 📅 Fecha:      ${venta.fecha_contrato}
 ━━━━━━━━━━━━━━━━━━━━━━━━
 👤 Comprador:  ${venta.comprador}${venta.pais_destino ? ' — ' + venta.pais_destino : ''}
-📦 Lote:       ${venta.lote_codigo}${venta.variedad ? ' (' + venta.variedad + ')' : ''}
+📦 Lote:       ${venta.acopio_codigo}${venta.variedad ? ' (' + venta.variedad + ')' : ''}
 ━━━━━━━━━━━━━━━━━━━━━━━━
 ⚖️  Cantidad:   ${parseFloat(venta.cantidad_kg).toLocaleString('es-PE', {minimumFractionDigits:2})} kg
 💵 Precio:     S/ ${parseFloat(venta.precio_usd_kg).toFixed(3)} / kg
@@ -3584,6 +3744,24 @@ function cerrarSesion() {
 ════════════════════════════════════════════════════════════ */
 let _capEditId = null;
 
+function setCapFiltro(btn, estado) {
+  document.querySelectorAll('.cap-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('f-cap-estado').value = estado;
+  cargarCapacitaciones();
+}
+
+function mostrarCapTab(tabId, btn) {
+  ['cap-tab-lista', 'cap-tab-manual'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = id === tabId ? '' : 'none';
+  });
+  document.querySelectorAll('#capacitacion .tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const btnNueva = document.getElementById('btn-nueva-cap');
+  if (btnNueva) btnNueva.style.display = tabId === 'cap-tab-lista' ? '' : 'none';
+}
+
 async function cargarCapacitaciones() {
   const estado = document.getElementById('f-cap-estado')?.value || '';
   const qs = estado ? `estado=${estado}` : '';
@@ -3602,29 +3780,29 @@ async function cargarCapacitaciones() {
   const rows = listRes.data || [];
   const tbody = document.getElementById('tbl-capacitaciones');
   tbody.innerHTML = rows.length ? rows.map(c => `
-    <tr>
+    <tr class="traz-row" onclick="verCapacitacion(${c.id})" title="Ver detalle">
       <td class="fw-bold">${c.titulo}</td>
       <td>${c.instructor || '—'}</td>
       <td>${c.organizacion || '—'}</td>
       <td>${c.fecha_inicio || '—'}</td>
       <td>${c.lugar || '—'}</td>
-      <td><span class="badge badge-mod-${c.modalidad}">${capModalidadLabel(c.modalidad)}</span></td>
+      <td>${capModalidadBadge(c.modalidad)}</td>
       <td class="text-center">${c.total_participantes || 0}</td>
       <td>${capEstadoBadge(c.estado)}</td>
-      <td style="white-space:nowrap">
-        <button class="btn-icon" onclick="verCapacitacion(${c.id})" title="Ver detalle">👁️</button>
-        <button class="btn-icon" onclick="editarCapacitacion(${c.id})" title="Editar">✏️</button>
-      </td>
-    </tr>`).join('') : emptyRow(9);
+    </tr>`).join('') : emptyRow(8);
 }
 
 function capEstadoBadge(e) {
-  const m = { programado:'info', en_curso:'warning', completado:'success', cancelado:'danger' };
+  const m = { programado:'info', en_curso:'warning', completado:'specialty', cancelado:'danger' };
   const l = { programado:'Programado', en_curso:'En Curso', completado:'Completado', cancelado:'Cancelado' };
   return `<span class="badge badge-${m[e]||'info'}">${l[e]||e}</span>`;
 }
 function capModalidadLabel(m) {
   return { presencial:'Presencial', virtual:'Virtual', mixto:'Mixto' }[m] || m;
+}
+function capModalidadBadge(m) {
+  const cls = { presencial:'info', virtual:'premium', mixto:'comercial' };
+  return `<span class="badge badge-${cls[m]||'info'}">${capModalidadLabel(m)}</span>`;
 }
 
 function abrirFormCapacitacion() {
@@ -3724,7 +3902,8 @@ async function verCapacitacion(id) {
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <strong>Participantes</strong>
-      <button class="btn btn-primary btn-sm" onclick="_capDetId=${id};toggleForm('form-part')">+ Agregar</button>
+      <button class="btn btn-ghost btn-sm" onclick="editarCapacitacion(${id})">✏️ Editar</button>
+      <button class="btn btn-primary btn-sm" onclick="_capDetId=${id};limpiarFormPart();toggleForm('form-part')">+ Participante</button>
     </div>
     <div class="table-wrap">
       <table class="table">
@@ -3738,6 +3917,14 @@ let _capDetId = null;
 function volverCapLista() {
   document.getElementById('cap-detalle').style.display = 'none';
   document.getElementById('cap-lista').style.display   = '';
+}
+
+function limpiarFormPart() {
+  ['part-nombre','part-cargo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const asistio = document.getElementById('part-asistio');
+  const cert    = document.getElementById('part-cert');
+  if (asistio) asistio.checked = true;
+  if (cert)    cert.checked    = false;
 }
 
 async function guardarParticipante() {

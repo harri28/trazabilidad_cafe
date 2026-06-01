@@ -50,15 +50,15 @@ $router->get('/clientes/{id}',         fn($p)   => (new ClienteController())->sh
 $router->post('/clientes',             fn()     => (new ClienteController())->store());
 $router->put('/clientes/{id}',         fn($p)   => (new ClienteController())->update($p));
 $router->delete('/clientes/{id}',      fn($p)   => (new ClienteController())->destroy($p));
-$router->get('/clientes/{id}/lotes',   fn($p)   => (new ClienteController())->lotes($p));
+$router->get('/clientes/{id}/acopios',  fn($p)   => (new ClienteController())->acopios($p));
 
-// ── LOTES ─────────────────────────────────────────────────
-$router->get('/lotes',                        fn()   => (new LoteController())->index());
-$router->get('/lotes/{id}',                   fn($p) => (new LoteController())->show($p));
-$router->post('/lotes',                       fn()   => (new LoteController())->store());
-$router->put('/lotes/{id}',                   fn($p) => (new LoteController())->update($p));
-$router->post('/lotes/{id}/certificaciones',  fn($p) => (new LoteController())->addCertificacion($p));
-$router->post('/lotes/{id}/transformar',      fn($p) => (new LoteController())->transformar($p));
+// ── ACOPIOS ───────────────────────────────────────────────
+$router->get('/acopios',                        fn()   => (new AcopioController())->index());
+$router->get('/acopios/{id}',                   fn($p) => (new AcopioController())->show($p));
+$router->post('/acopios',                       fn()   => (new AcopioController())->store());
+$router->put('/acopios/{id}',                   fn($p) => (new AcopioController())->update($p));
+$router->post('/acopios/{id}/certificaciones',  fn($p) => (new AcopioController())->addCertificacion($p));
+$router->post('/acopios/{id}/transformar',      fn($p) => (new AcopioController())->transformar($p));
 
 // ── KARDEX ────────────────────────────────────────────────
 $router->get('/kardex',               fn()   => (new KardexController())->index());
@@ -204,7 +204,7 @@ $router->post('/documentos',     fn()   => (new DocumentoController())->store())
 
 // ── TRAZABILIDAD ──────────────────────────────────────────
 $router->get('/trazabilidad/resumen',          fn()   => (new TrazabilidadController())->resumen());
-$router->get('/trazabilidad/lote/{id}',        fn($p) => (new TrazabilidadController())->lote($p));
+$router->get('/trazabilidad/acopio/{id}',       fn($p) => (new TrazabilidadController())->acopio($p));
 $router->get('/trazabilidad/productor/{id}',   fn($p) => (new TrazabilidadController())->productor($p));
 $router->get('/trazabilidad/cliente/{id}',     fn($p) => (new TrazabilidadController())->cliente($p));
 
@@ -235,7 +235,7 @@ $router->get('/', fn() => Response::json([
     ],
     'endpoints'=> [
         'clientes'       => '/api/clientes',
-        'lotes'          => '/api/lotes',
+        'acopios'        => '/api/acopios',
         'kardex'         => '/api/kardex',
         'laboratorio'    => '/api/laboratorio',
         'ventas'         => '/api/ventas',

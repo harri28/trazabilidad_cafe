@@ -47,7 +47,7 @@ class MailService
      */
     public function sendAlertaStock(string $to, string $nombre, array $lote): bool
     {
-        $subject = "Alerta de stock — Lote {$lote['codigo']}";
+        $subject = "Alerta de stock — Acopio {$lote['codigo']}";
         $html    = $this->tplAlertaStock($nombre, $lote);
         return $this->send($to, $nombre, $subject, $html);
     }
@@ -57,7 +57,7 @@ class MailService
      */
     public function sendAnalisisListo(string $to, string $nombre, array $analisis): bool
     {
-        $subject = "Análisis de calidad disponible — Lote {$analisis['lote_codigo']}";
+        $subject = "Análisis de calidad disponible — Acopio {$analisis['acopio_codigo']}";
         $html    = $this->tplAnalisisListo($nombre, $analisis);
         return $this->send($to, $nombre, $subject, $html);
     }
@@ -332,7 +332,7 @@ HTML;
             <td style="color:#4a6b5e;border-bottom:1px solid #e0ebe7;">{$contrato}</td>
           </tr>
           <tr>
-            <td style="color:#1E3932;font-weight:700;border-bottom:1px solid #e0ebe7;">Lote</td>
+            <td style="color:#1E3932;font-weight:700;border-bottom:1px solid #e0ebe7;">Acopio</td>
             <td style="color:#4a6b5e;border-bottom:1px solid #e0ebe7;">{$lote}</td>
           </tr>
           <tr style="background:#f4f9f6;">
@@ -394,7 +394,7 @@ HTML;
       <tr><td style="padding:32px 36px;">
         <p style="color:#4a6b5e;font-size:.95rem;line-height:1.6;margin:0 0 20px;">
           Hola <strong>{$nombre}</strong>,<br><br>
-          El lote <strong>{$codigo}</strong> tiene un stock bajo de <strong>{$stock} kg</strong> disponibles.
+          El acopio <strong>{$codigo}</strong> tiene un stock bajo de <strong>{$stock} kg</strong> disponibles.
         </p>
         <p style="color:#7B9E94;font-size:.82rem;">Revise el inventario e inicie el proceso de abastecimiento si es necesario.</p>
       </td></tr>
@@ -412,7 +412,7 @@ HTML;
     private function tplAnalisisListo(string $nombre, array $a): string
     {
         $year    = date('Y');
-        $lote    = htmlspecialchars($a['lote_codigo'] ?? '');
+        $lote    = htmlspecialchars($a['acopio_codigo'] ?? '');
         $score   = number_format((float)($a['score_taza'] ?? 0), 2);
         $clasif  = htmlspecialchars($a['clasificacion'] ?? '');
         $humedad = number_format((float)($a['humedad_pct'] ?? 0), 1);
@@ -436,7 +436,7 @@ HTML;
       </td></tr>
       <tr><td style="padding:32px 36px;">
         <p style="color:#4a6b5e;font-size:.95rem;line-height:1.6;margin:0 0 20px;">
-          Hola <strong>{$nombre}</strong>, el análisis de calidad del lote <strong>{$lote}</strong> está listo.
+          Hola <strong>{$nombre}</strong>, el análisis de calidad del acopio <strong>{$lote}</strong> está listo.
         </p>
         <table width="100%" cellpadding="10" cellspacing="0" style="border:1px solid #e0ebe7;border-radius:8px;font-size:.88rem;margin-bottom:20px;">
           <tr style="background:#f4f9f6;">

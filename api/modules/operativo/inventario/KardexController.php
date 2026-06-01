@@ -6,7 +6,7 @@ class KardexController {
         $this->db = (new Database())->getConnection();
     }
 
-    // GET /kardex?lote_id=5&tipo=entrada&desde=2024-01-01&hasta=2024-12-31
+    // GET /kardex?acopio_id=5&tipo=entrada&desde=2024-01-01&hasta=2024-12-31
     public function index(): void {
         $page   = max(1, (int)($_GET['page'] ?? 1));
         $limit  = min(200, (int)($_GET['per_page'] ?? 50));
@@ -15,9 +15,9 @@ class KardexController {
         $where  = ['1=1'];
         $params = [];
 
-        if (!empty($_GET['lote_id'])) {
-            $where[] = 'k.lote_id = :lote_id';
-            $params[':lote_id'] = $_GET['lote_id'];
+        if (!empty($_GET['acopio_id'])) {
+            $where[] = 'k.acopio_id = :acopio_id';
+            $params[':acopio_id'] = $_GET['acopio_id'];
         }
         if (!empty($_GET['tipo'])) {
             $where[] = 'k.tipo_movimiento = :tipo';
@@ -41,10 +41,10 @@ class KardexController {
         $stmt = $this->db->prepare("
             SELECT
                 k.*,
-                l.codigo   AS lote_codigo,
+                l.codigo   AS acopio_codigo,
                 c.razon_social AS productor
             FROM kardex k
-            JOIN lotes l   ON l.id = k.lote_id
+            JOIN acopios l   ON l.id = k.acopio_id
             JOIN clientes c ON c.id = l.productor_id
             WHERE {$whereSQL}
             ORDER BY k.fecha DESC, k.id DESC
@@ -67,16 +67,16 @@ class KardexController {
         try {
             $stmt = $this->db->prepare("
                 INSERT INTO kardex
-                    (lote_id, tipo_movimiento, concepto, fecha, cantidad_kg,
+                    (acopio_id, tipo_movimiento, concepto, fecha, cantidad_kg,
                      precio_unitario, moneda, tipo_cambio, prima_diferencial,
                      referencia_tipo, usuario, notas)
                 VALUES
-                    (:lote_id, :tipo_movimiento, :concepto, :fecha, :cantidad_kg,
+                    (:acopio_id, :tipo_movimiento, :concepto, :fecha, :cantidad_kg,
                      :precio_unitario, :moneda, :tipo_cambio, :prima_diferencial,
                      :referencia_tipo, :usuario, :notas)
             ");
             $stmt->execute([
-                ':lote_id'          => $data['lote_id'],
+                ':acopio_id'          => $data['acopio_id'],
                 ':tipo_movimiento'  => $data['tipo_movimiento'],
                 ':concepto'         => $data['concepto'],
                 ':fecha'            => $data['fecha'],
@@ -92,8 +92,8 @@ class KardexController {
 
             $id = Database::lastId($this->db, 'kardex');
             $row = $this->db->prepare("
-                SELECT k.*, l.codigo AS lote_codigo, l.peso_actual_kg AS saldo_actual_lote
-                FROM kardex k JOIN lotes l ON l.id = k.lote_id WHERE k.id = :id
+                SELECT k.*, l.codigo AS acopio_codigo, l.peso_actual_kg AS saldo_actual_lote
+                FROM kardex k JOIN acopios l ON l.id = k.acopio_id WHERE k.id = :id
             ");
             $row->execute([':id' => $id]);
             Response::json($row->fetch(), 201);
@@ -108,15 +108,15 @@ class KardexController {
         }
     }
 
-    // GET /kardex/resumen?lote_id=5
+    // GET /kardex/resumen?acopio_id=5
     public function resumen(): void {
-        $loteId = $_GET['lote_id'] ?? null;
+        $loteId = $_GET['acopio_id'] ?? null;
         $params = [];
         $extra  = '';
 
         if ($loteId) {
-            $extra = 'WHERE k.lote_id = :lote_id';
-            $params[':lote_id'] = $loteId;
+            $extra = 'WHERE k.acopio_id = :acopio_id';
+            $params[':acopio_id'] = $loteId;
         }
 
         $stmt = $this->db->prepare("
@@ -129,7 +129,7 @@ class KardexController {
                 l.peso_actual_kg AS saldo_actual,
                 l.estado
             FROM kardex k
-            JOIN lotes l ON l.id = k.lote_id
+            JOIN acopios l ON l.id = k.acopio_id
             {$extra}
             GROUP BY l.id
             ORDER BY l.codigo
@@ -152,7 +152,7 @@ class KardexController {
                 AVG(k.precio_unitario) AS precio_promedio,
                 k.moneda
             FROM kardex k
-            JOIN lotes l    ON l.id = k.lote_id
+            JOIN acopios l    ON l.id = k.acopio_id
             JOIN clientes c ON c.id  = l.productor_id
             WHERE k.tipo_movimiento = 'entrada' AND l.campaña = :campana
             GROUP BY l.id, k.moneda
@@ -164,7 +164,7 @@ class KardexController {
 
     private function validate(array $data): array {
         $errors = [];
-        if (empty($data['lote_id']))         $errors[] = 'lote_id es requerido';
+        if (empty($data['acopio_id']))         $errors[] = 'acopio_id es requerido';
         if (empty($data['tipo_movimiento'])) $errors[] = 'tipo_movimiento es requerido';
         if (empty($data['concepto']))        $errors[] = 'concepto es requerido';
         if (empty($data['fecha']))           $errors[] = 'fecha es requerido';

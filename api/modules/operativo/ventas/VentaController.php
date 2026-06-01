@@ -23,9 +23,9 @@ class VentaController {
             $where[] = 'v.comprador_id = :comp_id';
             $params[':comp_id'] = $_GET['comprador_id'];
         }
-        if (!empty($_GET['lote_id'])) {
-            $where[] = 'v.lote_id = :lote_id';
-            $params[':lote_id'] = $_GET['lote_id'];
+        if (!empty($_GET['acopio_id'])) {
+            $where[] = 'v.acopio_id = :acopio_id';
+            $params[':acopio_id'] = $_GET['acopio_id'];
         }
         if (!empty($_GET['desde'])) {
             $where[] = 'v.fecha_contrato >= :desde';
@@ -48,17 +48,17 @@ class VentaController {
         $stmt = $this->db->prepare("
             SELECT
                 v.*,
-                l.codigo        AS lote_codigo, l.variedad,
+                l.codigo        AS acopio_codigo, l.variedad,
                 comp.razon_social AS comprador,
                 comp.pais_destino,
                 comp.telefono   AS telefono_comprador,
                 prod.razon_social AS productor
             FROM ventas v
-            JOIN lotes l       ON l.id   = v.lote_id
+            JOIN acopios l       ON l.id   = v.acopio_id
             JOIN clientes comp ON comp.id = v.comprador_id
             JOIN clientes prod ON prod.id = l.productor_id
             WHERE {$whereSQL}
-            ORDER BY v.fecha_contrato DESC
+            ORDER BY v.id DESC
             LIMIT :limit OFFSET :offset
         ");
         foreach ($params as $k => $val) $stmt->bindValue($k, $val);
@@ -74,19 +74,19 @@ class VentaController {
         $stmt = $this->db->prepare("
             SELECT
                 v.*,
-                l.codigo AS lote_codigo, l.variedad, l.proceso_beneficio,
+                l.codigo AS acopio_codigo, l.variedad, l.proceso_beneficio,
                 l.peso_actual_kg AS stock_disponible_lote,
                 comp.razon_social AS comprador, comp.pais_destino, comp.email AS email_comprador,
                 prod.razon_social AS productor,
                 -- Último análisis del lote
                 la.score_taza, la.clasificacion, la.humedad_pct
             FROM ventas v
-            JOIN lotes l       ON l.id   = v.lote_id
+            JOIN acopios l       ON l.id   = v.acopio_id
             JOIN clientes comp ON comp.id = v.comprador_id
             JOIN clientes prod ON prod.id = l.productor_id
             LEFT JOIN laboratorio_analisis la ON la.id = (
                 SELECT id FROM laboratorio_analisis
-                WHERE lote_id = v.lote_id ORDER BY fecha_analisis DESC LIMIT 1
+                WHERE acopio_id = v.acopio_id ORDER BY fecha_analisis DESC LIMIT 1
             )
             WHERE v.id = :id
         ");
@@ -97,28 +97,20 @@ class VentaController {
         Response::json($venta);
     }
 
-    // POST /ventas  — crear contrato en borrador
+    // POST /ventas  — crear contrato y confirmar en una sola operación atómica
     public function store(): void {
         $data   = json_decode(file_get_contents('php://input'), true);
         $errors = $this->validate($data);
         if ($errors) { Response::error('Datos inválidos', 422, $errors); return; }
 
-        // Regla de negocio: validar stock disponible
-        $stockCheck = $this->db->prepare("
-            SELECT peso_actual_kg,
-                   peso_actual_kg - COALESCE((
-                       SELECT SUM(cantidad_kg) FROM ventas
-                       WHERE lote_id = :lote_id
-                         AND estado IN ('borrador','confirmado','en_proceso')
-                   ), 0) AS stock_libre
-            FROM lotes WHERE id = :lote_id2
-        ");
-        $stockCheck->execute([':lote_id' => $data['lote_id'], ':lote_id2' => $data['lote_id']]);
+        // Verificar stock usando peso_actual_kg directamente (ya refleja todos los kardex confirmados)
+        $stockCheck = $this->db->prepare("SELECT peso_actual_kg FROM acopios WHERE id = :acopio_id");
+        $stockCheck->execute([':acopio_id' => $data['acopio_id']]);
         $stock = $stockCheck->fetch();
 
-        if (!$stock || $stock['stock_libre'] < $data['cantidad_kg']) {
+        if (!$stock || $stock['peso_actual_kg'] < $data['cantidad_kg']) {
             Response::error(
-                'Stock insuficiente. Disponible: ' . ($stock['stock_libre'] ?? 0) . ' kg',
+                'Stock insuficiente. Disponible: ' . number_format(($stock['peso_actual_kg'] ?? 0), 3) . ' kg',
                 409
             );
             return;
@@ -126,39 +118,73 @@ class VentaController {
 
         $numero = $this->generarNumeroContrato();
 
-        $stmt = $this->db->prepare("
-            INSERT INTO ventas
-                (numero_contrato, comprador_id, lote_id, fecha_contrato, fecha_entrega,
-                 cantidad_kg, precio_usd_kg, tipo_cambio, moneda_factura,
-                 incoterm, puerto_embarque,
-                 humedad_max_pct, defectos_max, score_min, notas, usuario)
-            VALUES
-                (:numero, :comprador_id, :lote_id, :fecha_contrato, :fecha_entrega,
-                 :cantidad_kg, :precio_usd_kg, :tipo_cambio, :moneda_factura,
-                 :incoterm, :puerto_embarque,
-                 :humedad_max_pct, :defectos_max, :score_min, :notas, :usuario)
-        ");
-        $stmt->execute([
-            ':numero'          => $numero,
-            ':comprador_id'    => $data['comprador_id'],
-            ':lote_id'         => $data['lote_id'],
-            ':fecha_contrato'  => $data['fecha_contrato'],
-            ':fecha_entrega'   => $data['fecha_entrega']   ?? null,
-            ':cantidad_kg'     => $data['cantidad_kg'],
-            ':precio_usd_kg'   => $data['precio_usd_kg'],
-            ':tipo_cambio'     => $data['tipo_cambio']     ?? 1.0,
-            ':moneda_factura'  => $data['moneda_factura']  ?? 'USD',
-            ':incoterm'        => $data['incoterm']        ?? 'FOB',
-            ':puerto_embarque' => $data['puerto_embarque'] ?? null,
-            ':humedad_max_pct' => $data['humedad_max_pct'] ?? null,
-            ':defectos_max'    => $data['defectos_max']    ?? null,
-            ':score_min'       => $data['score_min']       ?? null,
-            ':notas'           => $data['notas']           ?? null,
-            ':usuario'         => $data['usuario']         ?? 'sistema',
-        ]);
+        $this->db->beginTransaction();
+        try {
+            // Insertar directamente como 'confirmado' — sin pasar por borrador
+            $stmt = $this->db->prepare("
+                INSERT INTO ventas
+                    (numero_contrato, comprador_id, acopio_id, fecha_contrato, fecha_entrega,
+                     cantidad_kg, precio_usd_kg, tipo_cambio, moneda_factura,
+                     incoterm, puerto_embarque,
+                     humedad_max_pct, defectos_max, score_min, notas, usuario, estado)
+                VALUES
+                    (:numero, :comprador_id, :acopio_id, :fecha_contrato, :fecha_entrega,
+                     :cantidad_kg, :precio_usd_kg, :tipo_cambio, :moneda_factura,
+                     :incoterm, :puerto_embarque,
+                     :humedad_max_pct, :defectos_max, :score_min, :notas, :usuario, 'confirmado')
+            ");
+            $stmt->execute([
+                ':numero'          => $numero,
+                ':comprador_id'    => $data['comprador_id'],
+                ':acopio_id'         => $data['acopio_id'],
+                ':fecha_contrato'  => $data['fecha_contrato'],
+                ':fecha_entrega'   => $data['fecha_entrega']   ?? null,
+                ':cantidad_kg'     => $data['cantidad_kg'],
+                ':precio_usd_kg'   => $data['precio_usd_kg'],
+                ':tipo_cambio'     => $data['tipo_cambio']     ?? 1.0,
+                ':moneda_factura'  => $data['moneda_factura']  ?? 'USD',
+                ':incoterm'        => $data['incoterm']        ?? 'FOB',
+                ':puerto_embarque' => $data['puerto_embarque'] ?? null,
+                ':humedad_max_pct' => $data['humedad_max_pct'] ?? null,
+                ':defectos_max'    => $data['defectos_max']    ?? null,
+                ':score_min'       => $data['score_min']       ?? null,
+                ':notas'           => $data['notas']           ?? null,
+                ':usuario'         => $data['usuario']         ?? 'sistema',
+            ]);
 
-        $id = Database::lastId($this->db, 'ventas');
-        $this->show(['id' => $id]);
+            $id = Database::lastId($this->db, 'ventas');
+
+            // Salida de inventario en kardex (el trigger valida stock negativo)
+            $stmtK = $this->db->prepare("
+                INSERT INTO kardex
+                    (acopio_id, tipo_movimiento, concepto, fecha, cantidad_kg,
+                     precio_unitario, moneda, tipo_cambio, referencia_id, referencia_tipo, usuario)
+                VALUES
+                    (:acopio_id, 'salida', :concepto, :fecha, :kg,
+                     :precio, 'USD', :tc, :ref_id, 'venta', :usuario)
+            ");
+            $stmtK->execute([
+                ':acopio_id'  => $data['acopio_id'],
+                ':concepto' => 'Venta - Contrato ' . $numero,
+                ':fecha'    => date('Y-m-d'),
+                ':kg'       => $data['cantidad_kg'],
+                ':precio'   => $data['precio_usd_kg'],
+                ':tc'       => $data['tipo_cambio'] ?? 1.0,
+                ':ref_id'   => $id,
+                ':usuario'  => 'sistema',
+            ]);
+
+            $this->db->commit();
+            $this->show(['id' => $id]);
+
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            if (str_contains($e->getMessage(), 'Stock insuficiente')) {
+                Response::error('Stock insuficiente para registrar la venta', 409);
+            } else {
+                Response::error('Error al registrar la venta: ' . $e->getMessage(), 500);
+            }
+        }
     }
 
     // PUT /ventas/{id}/confirmar  — confirmar contrato y descontar stock
@@ -182,14 +208,14 @@ class VentaController {
             // Salida de inventario en kardex
             $stmtK = $this->db->prepare("
                 INSERT INTO kardex
-                    (lote_id, tipo_movimiento, concepto, fecha, cantidad_kg,
+                    (acopio_id, tipo_movimiento, concepto, fecha, cantidad_kg,
                      precio_unitario, moneda, tipo_cambio, referencia_id, referencia_tipo, usuario)
                 VALUES
-                    (:lote_id, 'salida', :concepto, :fecha, :kg,
+                    (:acopio_id, 'salida', :concepto, :fecha, :kg,
                      :precio, 'USD', :tc, :ref_id, 'venta', :usuario)
             ");
             $stmtK->execute([
-                ':lote_id'  => $venta['lote_id'],
+                ':acopio_id'  => $venta['acopio_id'],
                 ':concepto' => 'Venta - Contrato ' . $venta['numero_contrato'],
                 ':fecha'    => date('Y-m-d'),
                 ':kg'       => $venta['cantidad_kg'],
@@ -204,10 +230,10 @@ class VentaController {
             // Notificación email al comprador (no bloquea si falla)
             $stmtEmail = $this->db->prepare("
                 SELECT comp.email, comp.razon_social AS comprador_nombre,
-                       l.codigo AS lote_codigo, l.variedad
+                       l.codigo AS acopio_codigo, l.variedad
                 FROM ventas v
                 JOIN clientes comp ON comp.id = v.comprador_id
-                JOIN lotes    l    ON l.id    = v.lote_id
+                JOIN acopios  l    ON l.id    = v.acopio_id
                 WHERE v.id = :id
             ");
             $stmtEmail->execute([':id' => $params['id']]);
@@ -220,7 +246,7 @@ class VentaController {
                         $emailData['comprador_nombre'],
                         [
                             'numero_contrato' => $venta['numero_contrato'],
-                            'lote_codigo'     => $emailData['lote_codigo'],
+                            'acopio_codigo'   => $emailData['acopio_codigo'],
                             'variedad'        => $emailData['variedad'],
                             'cantidad_kg'     => $venta['cantidad_kg'],
                             'precio_usd_kg'   => $venta['precio_usd_kg'],
@@ -269,12 +295,12 @@ class VentaController {
             if ($venta['estado'] === 'confirmado') {
                 $stmtK = $this->db->prepare("
                     INSERT INTO kardex
-                        (lote_id, tipo_movimiento, concepto, fecha, cantidad_kg,
+                        (acopio_id, tipo_movimiento, concepto, fecha, cantidad_kg,
                          referencia_id, referencia_tipo, usuario)
-                    VALUES (:lote_id, 'entrada', :concepto, :fecha, :kg, :ref_id, 'cancelacion', 'sistema')
+                    VALUES (:acopio_id, 'entrada', :concepto, :fecha, :kg, :ref_id, 'cancelacion', 'sistema')
                 ");
                 $stmtK->execute([
-                    ':lote_id'  => $venta['lote_id'],
+                    ':acopio_id'  => $venta['acopio_id'],
                     ':concepto' => 'Reversión por cancelación - Contrato ' . $venta['numero_contrato'],
                     ':fecha'    => date('Y-m-d'),
                     ':kg'       => $venta['cantidad_kg'],
@@ -341,7 +367,7 @@ class VentaController {
                 ROUND(SUM(CASE WHEN estado != 'cancelado' THEN total_usd    ELSE 0 END), 2) AS usd_totales,
                 ROUND(AVG(CASE WHEN estado != 'cancelado' THEN precio_usd_kg ELSE NULL END), 4) AS precio_promedio_usd
             FROM ventas v
-            JOIN lotes l ON l.id = v.lote_id
+            JOIN acopios l ON l.id = v.acopio_id
             WHERE l.campaña = :campana
         ");
         $stmt->execute([':campana' => $campana]);
@@ -355,7 +381,7 @@ class VentaController {
                    SUM(v.total_usd)   AS usd_total
             FROM ventas v
             JOIN clientes c ON c.id = v.comprador_id
-            JOIN lotes l    ON l.id  = v.lote_id
+            JOIN acopios l    ON l.id  = v.acopio_id
             WHERE v.estado != 'cancelado' AND l.campaña = :campana
             GROUP BY v.comprador_id
             ORDER BY usd_total DESC
@@ -373,7 +399,7 @@ class VentaController {
                 COUNT(*) FILTER (WHERE v.sunat_estado IN ('rechazado','observado'))                    AS con_problemas_sunat,
                 COALESCE(SUM(v.total_usd) FILTER (WHERE v.sunat_estado = 'aceptado'), 0)              AS usd_facturado_aceptado
             FROM ventas v
-            JOIN lotes l ON l.id = v.lote_id
+            JOIN acopios l ON l.id = v.acopio_id
             WHERE v.estado != 'cancelado' AND l.campaña = :campana
         ");
         $stmtSunat->execute([':campana' => $campana]);
@@ -395,7 +421,7 @@ class VentaController {
     private function validate(array $data): array {
         $errors = [];
         if (empty($data['comprador_id']))  $errors[] = 'comprador_id es requerido';
-        if (empty($data['lote_id']))       $errors[] = 'lote_id es requerido';
+        if (empty($data['acopio_id']))       $errors[] = 'acopio_id es requerido';
         if (empty($data['fecha_contrato'])) $errors[] = 'fecha_contrato es requerido';
         if (empty($data['cantidad_kg']) || $data['cantidad_kg'] <= 0)
                                            $errors[] = 'cantidad_kg debe ser > 0';
@@ -413,12 +439,12 @@ class VentaController {
         }
 
         // Verificar que el lote exista y tenga stock
-        if (!empty($data['lote_id'])) {
-            $stmt = $this->db->prepare("SELECT estado FROM lotes WHERE id = :id");
-            $stmt->execute([':id' => $data['lote_id']]);
+        if (!empty($data['acopio_id'])) {
+            $stmt = $this->db->prepare("SELECT estado FROM acopios WHERE id = :id");
+            $stmt->execute([':id' => $data['acopio_id']]);
             $l = $stmt->fetch();
-            if (!$l) $errors[] = 'lote_id no existe';
-            elseif ($l['estado'] === 'vendido') $errors[] = 'El lote ya fue vendido completamente';
+            if (!$l) $errors[] = 'acopio_id no existe';
+            elseif ($l['estado'] === 'vendido') $errors[] = 'El acopio ya fue vendido completamente';
         }
 
         return $errors;

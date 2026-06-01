@@ -44,9 +44,9 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
         <span class="nav-icon">👥</span>
         <span class="nav-label">Clientes</span>
       </button>
-      <button class="nav-item" data-section="lotes">
+      <button class="nav-item" data-section="acopios">
         <span class="nav-icon">📦</span>
-        <span class="nav-label">Lotes</span>
+        <span class="nav-label">Acopios</span>
       </button>
       <button class="nav-item" data-section="compras">
         <span class="nav-icon">🛒</span>
@@ -170,7 +170,7 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
       <div class="metrics">
         <div class="metric-card">
           <div class="metric-header"><div class="metric-icon">📦</div></div>
-          <div class="metric-label">Lotes Activos</div>
+          <div class="metric-label">Acopios Activos</div>
           <div class="metric-value" id="m-lotes">—</div>
           <div class="metric-sub" id="m-lotes-sub">acopio · proceso · disponible</div>
         </div>
@@ -239,7 +239,7 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
           <div class="panel-body no-pad">
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Productor</th><th>Lotes</th><th>Kg</th><th>Score</th></tr></thead>
+                <thead><tr><th>Productor</th><th>Acopios</th><th>Kg</th><th>Score</th></tr></thead>
                 <tbody id="tbl-top-productores">
                   <tr><td colspan="4"><div class="empty"><span class="empty-icon">⏳</span><p>Cargando...</p></div></td></tr>
                 </tbody>
@@ -267,8 +267,8 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
       <!-- Recent lots -->
       <div class="panel">
         <div class="panel-header">
-          <h2><span class="ph-icon">📦</span> Últimos Lotes</h2>
-          <button class="btn btn-ghost btn-sm" onclick="navTo('lotes')">Ver todos →</button>
+          <h2><span class="ph-icon">📦</span> Últimos Acopios</h2>
+          <button class="btn btn-ghost btn-sm" onclick="navTo('acopios')">Ver todos →</button>
         </div>
         <div class="panel-body no-pad">
           <div class="table-wrap">
@@ -363,7 +363,7 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
         <div class="drawer-section-title" style="margin-top:20px">Observaciones</div>
         <div id="drawer-cli-obs" class="drawer-obs">—</div>
 
-        <div class="drawer-section-title" style="margin-top:20px">Lotes Asociados</div>
+        <div class="drawer-section-title" style="margin-top:20px">Acopios Asociados</div>
         <div id="drawer-cli-lotes" class="drawer-lotes"></div>
       </div>
       <div class="drawer-footer">
@@ -373,11 +373,11 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
       </div>
     </aside>
 
-    <!-- ══════════ LOTES ══════════════════════════════════ -->
-    <section id="lotes" class="section">
+    <!-- ══════════ ACOPIOS ══════════════════════════════════ -->
+    <section id="acopios" class="section">
       <div class="page-header">
-        <h1><span class="page-icon">📦</span> Lotes de Café</h1>
-        <button class="btn btn-primary" onclick="abrirFormNuevoLote()">+ Nuevo Lote</button>
+        <h1><span class="page-icon">📦</span> Acopios de Café</h1>
+        <button class="btn btn-primary" onclick="abrirFormNuevoLote()">+ Nuevo Acopio</button>
       </div>
 
       <div class="panel">
@@ -396,9 +396,9 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
           <table>
             <thead>
               <tr>
-                <th>Código</th><th>Productor</th><th>Tipo</th><th>Fecha</th>
-                <th>Kg Inicial</th><th>Kg Actual</th><th>Merma</th>
-                <th>Variedad</th><th>Score</th><th>Estado</th><th></th>
+                <th>Código</th><th>Productor</th><th>Tipo</th><th>Fecha</th><th>Hora</th>
+                <th>Kg Inicial</th><th>Kg Actual</th>
+                <th>Score</th><th>Estado</th>
               </tr>
             </thead>
             <tbody id="tbl-lotes"></tbody>
@@ -413,7 +413,7 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
       <!-- ── Vista: Lista de lotes ──────────────────────────── -->
       <div id="traz-lista">
         <div class="page-header">
-          <h1><span class="page-icon">🔄</span> Trazabilidad de Lotes</h1>
+          <h1><span class="page-icon">🔄</span> Trazabilidad de Acopios</h1>
         </div>
 
         <div class="metrics">
@@ -441,7 +441,7 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
 
         <div class="panel">
           <div class="panel-header">
-            <h2><span class="ph-icon">📦</span> Lotes en Seguimiento</h2>
+            <h2><span class="ph-icon">📦</span> Acopios en Seguimiento</h2>
             <div class="ph-actions filters">
               <input type="search" id="f-traz-q" placeholder="Buscar código o productor..." autocomplete="off" oninput="filtrarTrazLotes(this.value)">
               <select id="f-traz-estado" onchange="cargarKardex()" class="filter-select-sm">
@@ -478,7 +478,7 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
       <div id="traz-detalle" style="display:none">
         <div class="page-header">
           <button class="btn btn-sm" onclick="volverTrazLista()">← Volver a la lista</button>
-          <h1 id="traz-det-titulo"><span class="page-icon">🔄</span> Trazabilidad del Lote</h1>
+          <h1 id="traz-det-titulo"><span class="page-icon">🔄</span> Trazabilidad del Acopio</h1>
         </div>
         <div id="traz-det-contenido"></div>
       </div>
@@ -546,7 +546,7 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
 
           <!-- Columna izquierda: lotes en almacén -->
           <div class="nv-lotes-col panel">
-            <div class="nv-col-title">☕ Lotes en Almacén</div>
+            <div class="nv-col-title">☕ Acopios en Almacén</div>
             <input type="search" id="v-shop-search"
                    class="shop-search"
                    placeholder="🔍 Buscar por código, productor o variedad..."
@@ -597,9 +597,10 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
                            onfocus="buscarCompradorVenta('ruc', this.value)"
                            onblur="ocultarCompResults()"
                            autocomplete="off">
-                    <button type="button" id="btn-consulta-ruc" class="btn-sunat-lookup"
-                            onclick="consultarRucSunat()" title="Consultar en SUNAT">
-                      <span id="btn-ruc-icon">🔎</span> SUNAT
+                    <button type="button" class="btn-buscar-comp"
+                            onmousedown="event.preventDefault()"
+                            onclick="buscarCompradorBtn()">
+                      Buscar
                     </button>
                   </div>
                   <div id="v-comp-results-ruc" class="prod-results-dropdown"></div>
@@ -636,16 +637,6 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
               </div>
             </div>
 
-            <!-- Comprobante SUNAT -->
-            <div class="form-group" style="margin-top:10px">
-              <label>Tipo de Comprobante SUNAT</label>
-              <select id="v-cpe-tipo">
-                <option value="factura">🧾 Factura — Persona jurídica</option>
-                <option value="boleta">📄 Boleta — Persona natural</option>
-                <option value="">⏭ Sin CPE — Emitir después</option>
-              </select>
-            </div>
-
             <!-- Acciones -->
             <div class="nv-form-actions">
               <button class="btn btn-ghost btn-block" onclick="previewWAFormVenta()">👁 Ver Pre Venta</button>
@@ -655,30 +646,29 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
 
         </div><!-- /nv-layout -->
 
-        <!-- ── Ventas registradas ── -->
+        <!-- ── Historial de ventas ── -->
         <div class="panel" style="margin-top:16px">
+          <div class="panel-header">
+            <h2><span class="ph-icon">🕒</span> Historial de Ventas</h2>
+            <span class="small text-muted">Últimas ventas registradas · más reciente primero</span>
+          </div>
           <div class="filters">
+            <input type="search" id="f-buscar-venta" placeholder="Buscar por contrato, comprador o lote…" oninput="filtrarHistorialVentas(this.value)" style="min-width:220px">
             <select id="f-estado-venta" onchange="cargarVentas()">
               <option value="">Todos los estados</option>
-              <option value="borrador">Borrador</option>
               <option value="confirmado">Confirmado</option>
               <option value="en_proceso">En proceso</option>
               <option value="entregado">Entregado</option>
               <option value="cancelado">Cancelado</option>
             </select>
             <input type="date" id="f-venta-desde" onchange="cargarVentas()" title="Desde fecha">
-            <label class="filter-check-label">
-              <input type="checkbox" id="f-sin-facturar" onchange="cargarVentas()">
-              Sin facturar
-            </label>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Venta</th><th>Comprador</th><th>Lote</th><th>Fecha</th>
-                  <th>Kg</th><th>S/ /kg</th><th>Total S/</th>
-                  <th>Incoterm</th><th>Estado</th><th>SUNAT</th><th>Acciones</th>
+                  <th class="text-right">Kg</th><th class="text-right">S/ /kg</th><th class="text-right">Total S/</th><th>Acciones</th>
                 </tr>
               </thead>
               <tbody id="tbl-ventas"></tbody>
@@ -957,7 +947,7 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
         </div>
         <div class="metric-card">
           <div class="metric-header"><div class="metric-icon">📋</div></div>
-          <div class="metric-label">Lotes Activos</div>
+          <div class="metric-label">Acopios Activos</div>
           <div class="metric-value" id="st-lotes">—</div>
           <div class="metric-sub">sin vender</div>
         </div>
@@ -1452,46 +1442,180 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
     <section id="capacitacion" class="section">
       <div class="page-header">
         <h1><span class="page-icon">🎓</span> Capacitación</h1>
-        <button class="btn btn-primary" onclick="abrirFormCapacitacion()">+ Nueva Capacitación</button>
+        <button class="btn btn-primary" id="btn-nueva-cap" onclick="abrirFormCapacitacion()">+ Nueva Capacitación</button>
       </div>
 
-      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
-        <div class="stat-card"><div class="stat-value" id="cap-k-total">—</div><div class="stat-label">Total</div></div>
-        <div class="stat-card"><div class="stat-value" id="cap-k-completadas">—</div><div class="stat-label">Completadas</div></div>
-        <div class="stat-card"><div class="stat-value" id="cap-k-participantes">—</div><div class="stat-label">Participantes</div></div>
-        <div class="stat-card"><div class="stat-value" id="cap-k-curso">—</div><div class="stat-label">En Curso</div></div>
+      <!-- Tabs -->
+      <div class="tab-nav" style="margin-bottom:18px">
+        <button class="tab-btn active" onclick="mostrarCapTab('cap-tab-lista',this)">📋 Capacitaciones</button>
+        <button class="tab-btn" onclick="mostrarCapTab('cap-tab-manual',this)">📖 Manual de Usuario</button>
       </div>
 
-      <div class="filter-bar" style="margin-bottom:14px">
-        <select id="f-cap-estado" onchange="cargarCapacitaciones()">
-          <option value="">Todos los estados</option>
-          <option value="programado">Programado</option>
-          <option value="en_curso">En Curso</option>
-          <option value="completado">Completado</option>
-          <option value="cancelado">Cancelado</option>
-        </select>
-      </div>
-
-      <div id="cap-lista">
-        <div class="table-wrap">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Título</th><th>Instructor</th><th>Organización</th>
-                <th>Fecha Inicio</th><th>Lugar</th><th>Modalidad</th>
-                <th>Participantes</th><th>Estado</th><th></th>
-              </tr>
-            </thead>
-            <tbody id="tbl-capacitaciones"></tbody>
-          </table>
+      <!-- TAB: Capacitaciones -->
+      <div id="cap-tab-lista">
+        <div class="metrics metrics-xs">
+          <div class="metric-card">
+            <div class="metric-header"><div class="metric-icon">🎓</div></div>
+            <div class="metric-label">Total</div>
+            <div class="metric-value" id="cap-k-total">—</div>
+            <div class="metric-sub">capacitaciones registradas</div>
+          </div>
+          <div class="metric-card verde">
+            <div class="metric-header"><div class="metric-icon">✅</div></div>
+            <div class="metric-label">Completadas</div>
+            <div class="metric-value" id="cap-k-completadas">—</div>
+            <div class="metric-sub">finalizadas con éxito</div>
+          </div>
+          <div class="metric-card info">
+            <div class="metric-header"><div class="metric-icon">👥</div></div>
+            <div class="metric-label">Participaciones</div>
+            <div class="metric-value" id="cap-k-participantes">—</div>
+            <div class="metric-sub">asistentes totales</div>
+          </div>
+          <div class="metric-card oro">
+            <div class="metric-header"><div class="metric-icon">🔄</div></div>
+            <div class="metric-label">En Curso</div>
+            <div class="metric-value" id="cap-k-curso">—</div>
+            <div class="metric-sub">capacitaciones activas</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="cap-filter-btn active" data-estado="" onclick="setCapFiltro(this,'')">Todos</button>
+          <button class="cap-filter-btn" data-estado="programado" onclick="setCapFiltro(this,'programado')">Programado</button>
+          <button class="cap-filter-btn" data-estado="en_curso" onclick="setCapFiltro(this,'en_curso')">En Curso</button>
+          <button class="cap-filter-btn" data-estado="completado" onclick="setCapFiltro(this,'completado')">Completado</button>
+          <button class="cap-filter-btn" data-estado="cancelado" onclick="setCapFiltro(this,'cancelado')">Cancelado</button>
+          <input type="hidden" id="f-cap-estado" value="">
+        </div>
+        <div id="cap-lista">
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Título</th><th>Instructor</th><th>Organización</th>
+                  <th>Fecha Inicio</th><th>Lugar</th><th>Modalidad</th>
+                  <th>Participantes</th><th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-capacitaciones"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="cap-detalle" style="display:none">
+          <button class="btn btn-ghost btn-sm" onclick="volverCapLista()" style="margin-bottom:16px">← Volver a lista</button>
+          <div id="cap-detalle-body"></div>
         </div>
       </div>
 
-      <!-- Panel detalle -->
-      <div id="cap-detalle" style="display:none">
-        <button class="btn btn-ghost btn-sm" onclick="volverCapLista()" style="margin-bottom:16px">← Volver a lista</button>
-        <div id="cap-detalle-body"></div>
-      </div>
+      <!-- TAB: Manual de Usuario -->
+      <div id="cap-tab-manual" style="display:none">
+        <div class="panel" style="max-width:860px;margin:0 auto">
+          <div class="panel-header">
+            <h2><span class="ph-icon">📖</span> Manual de Usuario — Sistema de Trazabilidad de Café</h2>
+            <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Imprimir</button>
+          </div>
+          <div class="panel-body" style="padding:28px;line-height:1.7;color:#2d3a34">
+
+            <p style="color:#7B9E94;font-size:.9rem;margin-bottom:24px">
+              Versión 2.0 &nbsp;·&nbsp; Sistema de Gestión de Café de Especialidad
+            </p>
+
+            <!-- 1. INTRODUCCIÓN -->
+            <div class="manual-section">
+              <h2 class="manual-h2">1. Introducción</h2>
+              <p>El Sistema de Trazabilidad de Café permite registrar y dar seguimiento completo al ciclo de vida del café de especialidad: desde el acopio en campo hasta la venta al comprador final. Garantiza transparencia, calidad y trazabilidad en cada etapa de la cadena productiva.</p>
+            </div>
+
+            <!-- 2. MÓDULOS -->
+            <div class="manual-section">
+              <h2 class="manual-h2">2. Módulos del Sistema</h2>
+
+              <h3 class="manual-h3">📦 Acopios</h3>
+              <p>Registra cada lote de café recibido de un productor. Para crear un acopio:</p>
+              <ol class="manual-list">
+                <li>Ve al menú lateral → <strong>Acopios</strong>.</li>
+                <li>Haz clic en <strong>+ Nuevo Acopio</strong>.</li>
+                <li>Busca al proveedor por nombre, DNI o RUC. El DNI se rellena automáticamente.</li>
+                <li>Completa la <strong>Fecha</strong>, <strong>Hora</strong>, <strong>Tipo de café</strong> y <strong>Sector</strong>.</li>
+                <li>En la sección de peso: ingresa <strong>SAC</strong> (sacos), <strong>KG BRT</strong> (peso bruto) y el sistema calcula automáticamente:
+                  <ul class="manual-list" style="margin-top:6px">
+                    <li><strong>KG NET</strong> = KG BRT − (SAC × 0.20)</li>
+                    <li><strong>QQ</strong> = KG NET ÷ 55.2</li>
+                    <li><strong>P. Unitario</strong> = Precio KG + Prima</li>
+                    <li><strong>Total S/</strong> = P. Unitario × KG NET</li>
+                    <li><strong>Pago Prima</strong> = Prima × KG NET</li>
+                  </ul>
+                </li>
+                <li>Haz clic en <strong>Registrar Acopio</strong>.</li>
+              </ol>
+              <div class="manual-tip">💡 La prima tiene un valor por defecto de S/ 0.40/kg. Puedes modificarla antes de guardar.</div>
+
+              <h3 class="manual-h3">👥 Clientes</h3>
+              <p>Gestiona productores y compradores. Un cliente puede tener rol de <em>productor</em>, <em>comprador</em> o <em>ambos</em>. Haz clic en cualquier fila para ver el detalle y sus acopios asociados.</p>
+
+              <h3 class="manual-h3">🔬 Laboratorio</h3>
+              <p>Registra análisis de calidad SCA (cupping). Busca al productor por DNI/RUC para filtrar sus acopios. El sistema clasifica automáticamente según el score taza:</p>
+              <ul class="manual-list">
+                <li><strong>Specialty</strong>: ≥ 80 puntos</li>
+                <li><strong>Premium</strong>: ≥ 75 puntos</li>
+                <li><strong>Comercial</strong>: ≥ 60 puntos</li>
+                <li><strong>Descarte</strong>: &lt; 60 puntos</li>
+              </ul>
+
+              <h3 class="manual-h3">🚢 Ventas</h3>
+              <p>Registra contratos de venta. Selecciona el acopio disponible del estante, ingresa el comprador, cantidad, precio e incoterm. El sistema descuenta el stock automáticamente al confirmar.</p>
+
+              <h3 class="manual-h3">🔄 Trazabilidad</h3>
+              <p>Consulta la línea de tiempo completa de cualquier acopio: registro, transformaciones, análisis de calidad y ventas. Haz clic en cualquier fila para ver el detalle.</p>
+
+              <h3 class="manual-h3">🏭 Almacén</h3>
+              <p>Visualiza el stock actual por tipo de café y estado. Muestra alertas cuando el stock cae por debajo del umbral configurado.</p>
+
+              <h3 class="manual-h3">💰 Financiero</h3>
+              <p>Registra asientos contables, flujo de caja y analiza centros de costo. Permite proyecciones de ingresos y egresos.</p>
+
+              <h3 class="manual-h3">⚙️ Configuración</h3>
+              <p>Gestiona campañas anuales, tasa de cambio USD/PEN, usuarios del sistema y backups. La campaña activa determina qué datos se muestran por defecto en el dashboard.</p>
+            </div>
+
+            <!-- 3. FLUJO -->
+            <div class="manual-section">
+              <h2 class="manual-h2">3. Flujo de Trabajo Recomendado</h2>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+                <div class="manual-step"><span class="manual-step-num">1</span> Registrar al productor como <strong>Cliente</strong> (tipo: productor).</div>
+                <div class="manual-step"><span class="manual-step-num">2</span> Crear un <strong>Acopio</strong> vinculado al productor.</div>
+                <div class="manual-step"><span class="manual-step-num">3</span> Registrar el <strong>Análisis de Laboratorio</strong> del acopio.</div>
+                <div class="manual-step"><span class="manual-step-num">4</span> Registrar al comprador como <strong>Cliente</strong> (tipo: comprador).</div>
+                <div class="manual-step"><span class="manual-step-num">5</span> Crear la <strong>Venta</strong> seleccionando el acopio disponible.</div>
+                <div class="manual-step"><span class="manual-step-num">6</span> Consultar la <strong>Trazabilidad</strong> completa del acopio.</div>
+              </div>
+            </div>
+
+            <!-- 4. PREGUNTAS FRECUENTES -->
+            <div class="manual-section">
+              <h2 class="manual-h2">4. Preguntas Frecuentes</h2>
+              <div class="manual-faq">
+                <div class="manual-faq-q">¿Cómo agrego un nuevo sector?</div>
+                <div class="manual-faq-a">En el formulario de Acopio, despliega el selector de Sector y elige <em>"+ Registrar nuevo sector..."</em>. Escribe el nombre y guarda el acopio.</div>
+              </div>
+              <div class="manual-faq">
+                <div class="manual-faq-q">¿Puedo cambiar la prima por defecto?</div>
+                <div class="manual-faq-a">Sí, en el formulario de Acopio el campo Prima S/ arranca en 0.40. Puedes editarlo antes de guardar.</div>
+              </div>
+              <div class="manual-faq">
+                <div class="manual-faq-q">¿Qué ocurre cuando confirmo una venta?</div>
+                <div class="manual-faq-a">El sistema descuenta los kg vendidos del stock del acopio. Si el stock queda en 0, el acopio pasa a estado <em>Vendido</em>; si queda saldo, pasa a <em>Parcial</em>.</div>
+              </div>
+              <div class="manual-faq">
+                <div class="manual-faq-q">¿Cómo cambio la campaña activa?</div>
+                <div class="manual-faq-a">Ve a <strong>Configuración → Campañas</strong> y haz clic en <em>"Activar"</em> en la campaña deseada. También puedes cambiarla desde el selector en la barra superior.</div>
+              </div>
+            </div>
+
+          </div><!-- /panel-body -->
+        </div><!-- /panel -->
+      </div><!-- /cap-tab-manual -->
+
     </section>
 
     <!-- ══ AUDITORÍA Y SEGURIDAD ══════════════════════════════ -->
@@ -1741,32 +1865,48 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
       <button class="modal-close" onclick="toggleForm('form-lote')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="alert alert-info" style="margin-bottom:12px">ℹ️ El código se genera automáticamente — ej: <strong>LOT-2026-0001</strong></div>
+      <div class="alert alert-info" style="margin-bottom:12px">ℹ️ El código se genera automáticamente — ej: <strong>ACOP-2026-0001</strong></div>
 
-      <!-- PRODUCTOR -->
-      <div class="lote-section-label">Sector / Productor *</div>
-      <div class="form-group" style="margin-bottom:10px">
-        <div class="prod-search-wrap">
-          <input type="text" id="l-prod-search" placeholder="🔍 Buscar por DNI, RUC o nombre..." oninput="buscarClienteLote(this.value)" autocomplete="off">
-          <input type="hidden" id="l-productor">
-          <div id="l-prod-results" class="prod-results-dropdown"></div>
-          <div id="l-prod-selected" class="prod-selected-card" style="display:none">
-            <div class="prod-sel-info">
-              <strong id="l-prod-sel-name"></strong>
-              <span class="small text-muted" id="l-prod-sel-ruc"></span>
+      <!-- PROVEEDOR + DNI -->
+      <div class="lote-section-label">Proveedor *</div>
+      <div class="form-grid cols-2" style="margin-bottom:10px;align-items:start">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Buscar por nombre, DNI o RUC</label>
+          <div class="prod-search-wrap">
+            <input type="text" id="l-prod-search" placeholder="🔍 Buscar..." oninput="buscarClienteLote(this.value)" autocomplete="off">
+            <input type="hidden" id="l-productor">
+            <div id="l-prod-results" class="prod-results-dropdown"></div>
+            <div id="l-prod-selected" class="prod-selected-card" style="display:none">
+              <div class="prod-sel-info">
+                <strong id="l-prod-sel-name"></strong>
+                <span class="small text-muted" id="l-prod-sel-ruc"></span>
+              </div>
+              <button type="button" class="prod-sel-clear" onclick="limpiarClienteLote()" title="Cambiar proveedor">✕</button>
             </div>
-            <button type="button" class="prod-sel-clear" onclick="limpiarClienteLote()" title="Cambiar productor">✕</button>
+            <div id="l-prod-notfound" class="prod-notfound" style="display:none">
+              <span>⚠️ No encontrado</span>
+              <button type="button" class="btn btn-sm btn-primary" onclick="irRegistrarCliente()">+ Registrar</button>
+            </div>
           </div>
-          <div id="l-prod-notfound" class="prod-notfound" style="display:none">
-            <span>⚠️ Cliente no encontrado</span>
-            <button type="button" class="btn btn-sm btn-primary" onclick="irRegistrarCliente()">+ Registrar</button>
-          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>DNI / RUC</label>
+          <input type="text" id="l-dni" placeholder="Auto-rellenable" readonly
+                 style="background:#f4f6f5;cursor:default">
         </div>
       </div>
 
       <!-- DATOS DEL CAFÉ -->
       <div class="lote-section-label">Datos del Café</div>
       <div class="form-grid cols-3" style="margin-bottom:10px">
+        <div class="form-group">
+          <label>Fecha de Acopio *</label>
+          <input type="date" id="l-fecha">
+        </div>
+        <div class="form-group">
+          <label>Hora</label>
+          <input type="time" id="l-hora">
+        </div>
         <div class="form-group">
           <label>Tipo de Café *</label>
           <select id="l-tipo">
@@ -1777,29 +1917,16 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
           </select>
         </div>
         <div class="form-group">
-          <label>Fecha de Acopio *</label>
-          <input type="date" id="l-fecha">
-        </div>
-        <div class="form-group">
-          <label>Variedad</label>
-          <input type="text" id="l-variedad" placeholder="Typica, Caturra, Gesha...">
-        </div>
-        <div class="form-group">
-          <label>Proceso de Beneficio</label>
-          <select id="l-proceso">
-            <option value="lavado">Lavado</option>
-            <option value="natural">Natural</option>
-            <option value="honey">Honey</option>
-            <option value="semi-lavado">Semi-lavado</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Nombre de Finca</label>
-          <input type="text" id="l-finca">
-        </div>
-        <div class="form-group">
-          <label>Altitud (msnm)</label>
-          <input type="number" id="l-altitud" placeholder="1800">
+          <label>Sector</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <select id="l-sector" style="flex:1" onchange="toggleNuevoSector(this.value)">
+              <option value="">— Seleccionar —</option>
+              <!-- opciones cargadas dinámicamente -->
+            </select>
+            <button type="button" class="btn btn-sm btn-ghost" onclick="toggleNuevoSector('__nuevo__')" title="Registrar nuevo sector">+</button>
+          </div>
+          <input type="text" id="l-sector-nuevo" placeholder="Nombre del nuevo sector..."
+                 style="display:none;margin-top:6px" oninput="sincronizarSector(this.value)">
         </div>
       </div>
 
@@ -1809,7 +1936,7 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
         <div class="form-grid cols-3">
           <div class="form-group">
             <label>SAC (Sacos)</label>
-            <input type="number" id="l-sacos" min="0" step="1" placeholder="0">
+            <input type="number" id="l-sacos" min="0" step="0.01" placeholder="2.00" oninput="calcularLote()">
           </div>
           <div class="form-group">
             <label>KG BRT (Bruto)</label>
@@ -1855,8 +1982,107 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-success" id="btn-guardar-lote" onclick="guardarLote()">💾 Registrar Lote</button>
+      <button class="btn btn-success" id="btn-guardar-lote" onclick="guardarLote()">💾 Registrar Acopio</button>
       <button class="btn btn-ghost" onclick="toggleForm('form-lote')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL CAPACITACIÓN ════════════════════════════════════ -->
+<div id="modal-form-cap" class="modal-overlay" onclick="if(event.target===this)toggleForm('form-cap')">
+  <div class="modal" style="max-width:680px" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="cap-modal-title">🎓 Nueva Capacitación</div>
+      <button class="modal-close" onclick="toggleForm('form-cap')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid cols-2">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Título *</label>
+          <input type="text" id="cap-titulo" placeholder="Nombre de la capacitación...">
+        </div>
+        <div class="form-group">
+          <label>Instructor</label>
+          <input type="text" id="cap-instructor" placeholder="Nombre del instructor">
+        </div>
+        <div class="form-group">
+          <label>Organización</label>
+          <input type="text" id="cap-org" placeholder="Entidad organizadora">
+        </div>
+        <div class="form-group">
+          <label>Fecha Inicio *</label>
+          <input type="date" id="cap-inicio">
+        </div>
+        <div class="form-group">
+          <label>Fecha Fin</label>
+          <input type="date" id="cap-fin">
+        </div>
+        <div class="form-group">
+          <label>Lugar</label>
+          <input type="text" id="cap-lugar" placeholder="Ciudad / plataforma virtual">
+        </div>
+        <div class="form-group">
+          <label>Modalidad</label>
+          <select id="cap-modalidad">
+            <option value="presencial">Presencial</option>
+            <option value="virtual">Virtual</option>
+            <option value="mixto">Mixto</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="cap-estado">
+            <option value="programado">Programado</option>
+            <option value="en_curso">En Curso</option>
+            <option value="completado">Completado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Máx. Participantes</label>
+          <input type="number" id="cap-max" min="1" placeholder="Sin límite">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Descripción / Notas</label>
+          <textarea id="cap-notas" rows="3" placeholder="Temas a tratar, objetivos..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-success" id="btn-guardar-cap" onclick="guardarCapacitacion()">💾 Guardar</button>
+      <button class="btn btn-ghost" onclick="toggleForm('form-cap')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PARTICIPANTE ═════════════════════════════════════ -->
+<div id="modal-form-part" class="modal-overlay" onclick="if(event.target===this)toggleForm('form-part')">
+  <div class="modal" style="max-width:480px" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">👤 Agregar Participante</div>
+      <button class="modal-close" onclick="toggleForm('form-part')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nombre completo *</label>
+        <input type="text" id="part-nombre" placeholder="Nombre del participante">
+      </div>
+      <div class="form-group">
+        <label>Cargo / Rol</label>
+        <input type="text" id="part-cargo" placeholder="Productor, técnico, supervisor...">
+      </div>
+      <div class="form-group" style="display:flex;gap:24px;margin-top:8px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="part-asistio" checked> Asistió
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="part-cert"> Certificado emitido
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-success" onclick="guardarParticipante()">💾 Agregar</button>
+      <button class="btn btn-ghost" onclick="toggleForm('form-part')">Cancelar</button>
     </div>
   </div>
 </div>
@@ -1962,7 +2188,10 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
   <div class="modal modal-lg" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title">📄 Detalle de Venta</div>
-      <button class="modal-close" onclick="toggleForm('detalle-venta')">✕</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-sm btn-ghost" onclick="imprimirDetalleVenta()" title="Imprimir detalle">🖨 Imprimir</button>
+        <button class="modal-close" onclick="toggleForm('detalle-venta')">✕</button>
+      </div>
     </div>
     <div class="modal-body" id="modal-detalle-venta-body">
       <div class="empty"><span class="empty-icon">⏳</span><p>Cargando...</p></div>

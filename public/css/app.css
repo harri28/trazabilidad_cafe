@@ -461,6 +461,37 @@ body.sidebar-collapsed #app { margin-left: var(--sidebar-w-c); }
   font-size: .75rem;
 }
 
+/* Filtros pill — Capacitación */
+.cap-filter-btn {
+  padding: 5px 14px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-muted);
+  font-size: .8rem;
+  cursor: pointer;
+  transition: all .15s;
+}
+.cap-filter-btn:hover  { border-color: var(--verde); color: var(--verde); }
+.cap-filter-btn.active { background: var(--verde); color: #fff; border-color: var(--verde); font-weight: 600; }
+
+/* KPIs extra-compactos (Capacitación) */
+.metrics-xs {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.metrics-xs .metric-card {
+  padding: 10px 14px;
+  gap: 1px;
+  border-top-width: 2px;
+}
+.metrics-xs .metric-header { margin-bottom: 2px; }
+.metrics-xs .metric-icon   { width: 28px; height: 28px; font-size: .9rem; border-radius: 6px; }
+.metrics-xs .metric-value  { font-size: 1.5rem; font-weight: 700; }
+.metrics-xs .metric-label  { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+.metrics-xs .metric-sub    { font-size: .68rem; color: var(--text-muted); margin-top: 1px; }
+
 .metric-card {
   background: var(--card);
   border-radius: var(--radius);
@@ -960,6 +991,20 @@ tbody tr:last-child td { border-bottom: none; }
 .filters input[type="text"] { flex: 1; min-width: 180px; }
 
 /* ── Trazabilidad — lista de lotes ───────────────────────── */
+/* ── Manual de Usuario ──────────────────────────────────── */
+.manual-section { margin-bottom: 32px; }
+.manual-h2 { font-size: 1.05rem; font-weight: 700; color: #1E3932; border-bottom: 2px solid #e0ebe7; padding-bottom: 6px; margin-bottom: 12px; }
+.manual-h3 { font-size: .95rem; font-weight: 700; color: #00704A; margin: 18px 0 6px; }
+.manual-list { padding-left: 20px; margin: 6px 0; }
+.manual-list li { margin-bottom: 4px; }
+.manual-tip { background: #e8f5ee; border-left: 4px solid #00704A; border-radius: 0 8px 8px 0; padding: 10px 14px; font-size: .85rem; color: #2d7a45; margin-top: 10px; }
+.manual-step { display: flex; align-items: center; gap: 12px; background: #f4f6f5; border-radius: 8px; padding: 10px 14px; font-size: .9rem; }
+.manual-step-num { background: #1E3932; color: #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; flex-shrink: 0; }
+.manual-faq { border: 1px solid #e0ebe7; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+.manual-faq-q { background: #f4f6f5; padding: 10px 14px; font-weight: 600; font-size: .88rem; color: #1E3932; }
+.manual-faq-a { padding: 10px 14px; font-size: .87rem; color: #4a6b5e; }
+@media print { .sidebar, #topbar, .tab-nav, .btn { display: none !important; } #cap-tab-manual { display: block !important; } }
+
 .traz-row {
   cursor: pointer;
   transition: background .15s;
@@ -1239,6 +1284,25 @@ tbody tr:last-child td { border-bottom: none; }
 .rpt-tr  { text-align: right;  }
 .rpt-fw  { font-weight: 700;   }
 .rpt-danger { color: #DC2626; }
+
+/* Badges de etapa en la línea de tiempo */
+.tl-etapa-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: .68rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.tl-etapa-acopio       { background: #D4E9E2; color: #1E3932; }
+.tl-etapa-transf       { background: #DBEAFE; color: #1E40AF; }
+.tl-etapa-calidad      { background: #FEF3E2; color: #92400E; }
+.tl-etapa-venta        { background: #DCFCE7; color: #166534; }
+.tl-etapa-estado       { background: #F3F4F6; color: #374151; }
+.tl-etapa-estado-venta { background: #EDE9FE; color: #5B21B6; }
+.tl-etapa-default      { background: #F1F5F9; color: #475569; }
 
 .text-right { text-align: right !important; }
 
@@ -1777,6 +1841,7 @@ tbody tr:last-child td { border-bottom: none; }
   padding: 16px;
   width: 100%;
   box-sizing: border-box;
+  overflow: visible;
 }
 .nv-form-col .form-grid,
 .nv-form-col .form-grid.cols-2,
@@ -1867,6 +1932,23 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .btn-sunat-lookup:hover  { background: #a00d25; }
 .btn-sunat-lookup:disabled { opacity: .55; cursor: default; }
+
+.btn-buscar-comp {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  background: #1a7a3e;
+  color: #fff;
+  border: 1px solid #145f30;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+  line-height: 1;
+}
+.btn-buscar-comp:hover { background: #145f30; }
 
 /* ── Tarjeta resultado SUNAT ─────────────────────────────── */
 .sunat-ruc-card {
@@ -2050,71 +2132,31 @@ tbody tr:last-child td { border-bottom: none; }
   background: #fff;
 }
 
-.cart-col-header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  padding: 5px 12px;
+.cart-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .78rem;
+}
+.cart-table thead tr {
   background: #f1f5f9;
   border-bottom: 2px solid var(--border);
-  font-size: .68rem;
+}
+.cart-table thead th {
+  padding: 6px 10px;
+  font-size: .67rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .05em;
   color: var(--muted);
-}
-.cart-col-header-right {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.cart-col-header-right span {
-  text-align: center;
   white-space: nowrap;
 }
-.cart-col-header-right span:nth-child(1) { width: 78px; }
-.cart-col-header-right span:nth-child(2) { width: 78px; }
-.cart-col-header-right span:nth-child(3) { width: 68px; text-align: right; }
-.cart-col-header-right span:nth-child(4) { width: 28px; }
+.cart-table tbody tr { border-bottom: 1px solid var(--border); }
+.cart-table tbody tr:nth-child(odd)  { background: #fff; }
+.cart-table tbody tr:nth-child(even) { background: #f8fafc; }
+.cart-table tbody td { padding: 7px 10px; vertical-align: middle; }
 
-.cart-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: center;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
-}
-.cart-item:nth-child(odd)  { background: #fff; }
-.cart-item:nth-child(even) { background: #f8fafc; }
-
-.cart-item-code {
-  font-family: var(--font-mono, monospace);
-  font-weight: 700;
-  font-size: .78rem;
-}
-.cart-item-tipo { font-size: .69rem; color: var(--muted); margin-top: 1px; }
-
-.cart-item-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.cart-input-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-.cart-input-wrap label {
-  font-size: .6rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--muted);
-  letter-spacing: .04em;
-}
-.cart-input-wrap input {
-  width: 78px;
+.cart-input-inline {
+  width: 80px;
   text-align: right;
   padding: 4px 6px;
   font-size: .78rem;
@@ -2123,18 +2165,10 @@ tbody tr:last-child td { border-bottom: none; }
   background: var(--card);
   color: var(--text);
 }
-.cart-input-wrap input:focus { outline: none; border-color: var(--verde); }
-.cart-input-wrap input::-webkit-outer-spin-button,
-.cart-input-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.cart-input-wrap input[type="number"] { -moz-appearance: textfield; }
-
-.cart-subtotal {
-  font-size: .78rem;
-  font-weight: 700;
-  color: var(--verde);
-  min-width: 68px;
-  text-align: right;
-}
+.cart-input-inline:focus { outline: none; border-color: var(--verde); }
+.cart-input-inline::-webkit-outer-spin-button,
+.cart-input-inline::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.cart-input-inline[type="number"] { -moz-appearance: textfield; }
 
 .cart-remove-btn {
   background: none;
@@ -2306,10 +2340,15 @@ tbody tr:last-child td { border-bottom: none; }
 .prod-search-wrap { position: relative; display: flex; flex-direction: column; gap: 6px; }
 
 .prod-results-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 300;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
   max-height: 220px;
   overflow-y: auto;
   display: none;

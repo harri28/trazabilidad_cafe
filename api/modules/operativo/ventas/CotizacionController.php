@@ -21,7 +21,7 @@ class CotizacionController
         $where  = ['1=1'];
         $params = [];
 
-        foreach (['comprador_id' => ':comp', 'estado' => ':estado', 'lote_id' => ':lote'] as $f => $b) {
+        foreach (['comprador_id' => ':comp', 'estado' => ':estado', 'acopio_id' => ':lote'] as $f => $b) {
             if (!empty($_GET[$f])) { $where[] = "cot.{$f} = {$b}"; $params[$b] = $_GET[$f]; }
         }
 
@@ -34,11 +34,11 @@ class CotizacionController
         $stmt = $this->db->prepare("
             SELECT cot.*,
                    c.razon_social AS comprador, c.pais_destino,
-                   l.codigo AS lote_codigo, l.variedad, l.peso_actual_kg AS stock_kg,
+                   l.codigo AS acopio_codigo, l.variedad, l.peso_actual_kg AS stock_kg,
                    (cot.fecha_vencimiento - CURRENT_DATE) AS dias_para_vencer
             FROM cotizaciones cot
             JOIN clientes c ON c.id  = cot.comprador_id
-            JOIN lotes l    ON l.id  = cot.lote_id
+            JOIN acopios l    ON l.id  = cot.acopio_id
             WHERE {$whereSQL}
             ORDER BY cot.fecha_cotizacion DESC
             LIMIT :limit OFFSET :offset
@@ -57,15 +57,15 @@ class CotizacionController
         $stmt = $this->db->prepare("
             SELECT cot.*,
                    c.razon_social AS comprador, c.email AS email_comprador, c.pais_destino,
-                   l.codigo AS lote_codigo, l.variedad, l.proceso_beneficio,
+                   l.codigo AS acopio_codigo, l.variedad, l.proceso_beneficio,
                    l.peso_actual_kg AS stock_disponible,
                    la.score_taza, la.clasificacion
             FROM cotizaciones cot
             JOIN clientes c ON c.id  = cot.comprador_id
-            JOIN lotes l    ON l.id  = cot.lote_id
+            JOIN acopios l    ON l.id  = cot.acopio_id
             LEFT JOIN laboratorio_analisis la ON la.id = (
                 SELECT id FROM laboratorio_analisis
-                WHERE lote_id = cot.lote_id ORDER BY fecha_analisis DESC LIMIT 1
+                WHERE acopio_id = cot.acopio_id ORDER BY fecha_analisis DESC LIMIT 1
             )
             WHERE cot.id = :id
         ");
@@ -86,7 +86,7 @@ class CotizacionController
 
         $stmt = $this->db->prepare("
             INSERT INTO cotizaciones
-                (numero, comprador_id, lote_id, fecha_cotizacion, fecha_vencimiento,
+                (numero, comprador_id, acopio_id, fecha_cotizacion, fecha_vencimiento,
                  cantidad_kg, precio_usd_kg, incoterm, condiciones, notas)
             VALUES
                 (:num, :comp, :lote, :fecha, :venc,
@@ -95,7 +95,7 @@ class CotizacionController
         $stmt->execute([
             ':num'     => $numero,
             ':comp'    => $data['comprador_id'],
-            ':lote'    => $data['lote_id'],
+            ':lote'    => $data['acopio_id'],
             ':fecha'   => $data['fecha_cotizacion'],
             ':venc'    => $data['fecha_vencimiento'],
             ':qty'     => $data['cantidad_kg'],
@@ -134,8 +134,8 @@ class CotizacionController
         $this->db->beginTransaction();
         try {
             // Verificar stock
-            $stmtS = $this->db->prepare("SELECT peso_actual_kg FROM lotes WHERE id = :id");
-            $stmtS->execute([':id' => $cot['lote_id']]);
+            $stmtS = $this->db->prepare("SELECT peso_actual_kg FROM acopios WHERE id = :id");
+            $stmtS->execute([':id' => $cot['acopio_id']]);
             $lote = $stmtS->fetch();
 
             if ($lote['peso_actual_kg'] < $cot['cantidad_kg']) {
@@ -150,7 +150,7 @@ class CotizacionController
 
             $stmtV = $this->db->prepare("
                 INSERT INTO ventas
-                    (numero_contrato, comprador_id, lote_id, fecha_contrato,
+                    (numero_contrato, comprador_id, acopio_id, fecha_contrato,
                      cantidad_kg, precio_usd_kg, incoterm, notas, usuario)
                 VALUES
                     (:num, :comp, :lote, :fecha, :qty, :precio, :incoterm, :notas, 'sistema')
@@ -158,7 +158,7 @@ class CotizacionController
             $stmtV->execute([
                 ':num'     => $numVenta,
                 ':comp'    => $cot['comprador_id'],
-                ':lote'    => $cot['lote_id'],
+                ':lote'    => $cot['acopio_id'],
                 ':fecha'   => date('Y-m-d'),
                 ':qty'     => $cot['cantidad_kg'],
                 ':precio'  => $cot['precio_usd_kg'],
@@ -215,7 +215,7 @@ class CotizacionController
     {
         $errors = [];
         if (empty($d['comprador_id']))      $errors[] = 'comprador_id es requerido';
-        if (empty($d['lote_id']))           $errors[] = 'lote_id es requerido';
+        if (empty($d['acopio_id']))           $errors[] = 'acopio_id es requerido';
         if (empty($d['fecha_cotizacion']))  $errors[] = 'fecha_cotizacion es requerido';
         if (empty($d['fecha_vencimiento'])) $errors[] = 'fecha_vencimiento es requerido';
         if (empty($d['cantidad_kg']) || $d['cantidad_kg'] <= 0)

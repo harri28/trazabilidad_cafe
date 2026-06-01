@@ -148,13 +148,13 @@ class ClienteController {
 
     // DELETE /clientes/{id}  (baja lógica)
     public function destroy(array $params): void {
-        // Verificar que no tiene lotes activos
+        // Verificar que no tiene acopios activos
         $stmt = $this->db->prepare("
-            SELECT COUNT(*) FROM lotes WHERE productor_id = :id AND estado != 'vendido'
+            SELECT COUNT(*) FROM acopios WHERE productor_id = :id AND estado != 'vendido'
         ");
         $stmt->execute([':id' => $params['id']]);
         if ($stmt->fetchColumn() > 0) {
-            Response::error('No se puede eliminar: el productor tiene lotes activos', 409);
+            Response::error('No se puede eliminar: el productor tiene acopios activos', 409);
             return;
         }
 
@@ -163,11 +163,11 @@ class ClienteController {
         Response::json(['message' => 'Cliente desactivado correctamente']);
     }
 
-    // GET /clientes/{id}/lotes
-    public function lotes(array $params): void {
+    // GET /clientes/{id}/acopios
+    public function acopios(array $params): void {
         $stmt = $this->db->prepare("
             SELECT l.*, tc.nombre AS tipo_cafe
-            FROM lotes l
+            FROM acopios l
             JOIN tipos_cafe tc ON tc.id = l.tipo_cafe_id
             WHERE l.productor_id = :id
             ORDER BY l.fecha_acopio DESC
