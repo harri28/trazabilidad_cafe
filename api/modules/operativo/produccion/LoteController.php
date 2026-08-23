@@ -29,16 +29,16 @@ class LoteController {
         }
         if (!empty($_GET['certificacion'])) {
             $where[] = 'EXISTS (
-                SELECT 1 FROM lote_certificaciones lc2
+                SELECT 1 FROM acopio_certificaciones lc2
                 JOIN certificaciones_catalogo cc ON cc.id = lc2.certificacion_id
-                WHERE lc2.lote_id = l.id AND cc.codigo = :cert
+                WHERE lc2.acopio_id = l.id AND cc.codigo = :cert
             )';
             $params[':cert'] = $_GET['certificacion'];
         }
 
         $whereSQL = implode(' AND ', $where);
 
-        $countSQL = "SELECT COUNT(*) FROM lotes l WHERE {$whereSQL}";
+        $countSQL = "SELECT COUNT(*) FROM acopios l WHERE {$whereSQL}";
         $countStmt = $this->db->prepare($countSQL);
         $countStmt->execute($params);
         $total = (int)$countStmt->fetchColumn();
@@ -54,15 +54,15 @@ class LoteController {
                 c.departamento, c.provincia,
                 la.score_taza, la.clasificacion, la.humedad_pct,
                 (SELECT STRING_AGG(cert2.codigo, ', ' ORDER BY cert2.codigo)
-                 FROM lote_certificaciones lc2
+                 FROM acopio_certificaciones lc2
                  JOIN certificaciones_catalogo cert2 ON cert2.id = lc2.certificacion_id
-                 WHERE lc2.lote_id = l.id) AS certificaciones
-            FROM lotes l
+                 WHERE lc2.acopio_id = l.id) AS certificaciones
+            FROM acopios l
             JOIN tipos_cafe tc ON tc.id = l.tipo_cafe_id
             JOIN clientes c    ON c.id  = l.productor_id
             LEFT JOIN laboratorio_analisis la ON la.id = (
                 SELECT id FROM laboratorio_analisis
-                WHERE lote_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
+                WHERE acopio_id = l.id ORDER BY fecha_analisis DESC LIMIT 1
             )
             WHERE {$whereSQL}
             ORDER BY l.fecha_acopio DESC
@@ -82,7 +82,7 @@ class LoteController {
             SELECT l.*, tc.nombre AS tipo_cafe,
                    c.razon_social AS productor, c.departamento, c.provincia,
                    c.asociacion, c.altitud_msnm AS productor_altitud
-            FROM lotes l
+            FROM acopios l
             JOIN tipos_cafe tc ON tc.id = l.tipo_cafe_id
             JOIN clientes c    ON c.id  = l.productor_id
             WHERE l.id = :id
@@ -95,16 +95,16 @@ class LoteController {
         // Certificaciones
         $stmt2 = $this->db->prepare("
             SELECT cc.codigo, cc.nombre, lc.fecha_inicio, lc.fecha_vencimiento, lc.numero_certificado
-            FROM lote_certificaciones lc
+            FROM acopio_certificaciones lc
             JOIN certificaciones_catalogo cc ON cc.id = lc.certificacion_id
-            WHERE lc.lote_id = :id
+            WHERE lc.acopio_id = :id
         ");
         $stmt2->execute([':id' => $params['id']]);
         $lote['certificaciones'] = $stmt2->fetchAll();
 
         // Últimos análisis
         $stmt3 = $this->db->prepare("
-            SELECT * FROM laboratorio_analisis WHERE lote_id = :id ORDER BY fecha_analisis DESC LIMIT 5
+            SELECT * FROM laboratorio_analisis WHERE acopio_id = :id ORDER BY fecha_analisis DESC LIMIT 5
         ");
         $stmt3->execute([':id' => $params['id']]);
         $lote['analisis'] = $stmt3->fetchAll();
@@ -115,7 +115,7 @@ class LoteController {
                    v.total_usd, v.fecha_contrato, c.razon_social AS comprador
             FROM ventas v
             JOIN clientes c ON c.id = v.comprador_id
-            WHERE v.lote_id = :id AND v.estado != 'cancelado'
+            WHERE v.acopio_id = :id AND v.estado != 'cancelado'
         ");
         $stmt4->execute([':id' => $params['id']]);
         $lote['ventas'] = $stmt4->fetchAll();
@@ -123,7 +123,7 @@ class LoteController {
         // Kardex reciente
         $stmt5 = $this->db->prepare("
             SELECT tipo_movimiento, concepto, fecha, cantidad_kg, precio_unitario, total_monto, saldo_kg
-            FROM kardex WHERE lote_id = :id ORDER BY creado_en DESC LIMIT 20
+            FROM kardex WHERE acopio_id = :id ORDER BY creado_en DESC LIMIT 20
         ");
         $stmt5->execute([':id' => $params['id']]);
         $lote['kardex'] = $stmt5->fetchAll();
@@ -142,7 +142,7 @@ class LoteController {
         $this->db->beginTransaction();
         try {
             $stmt = $this->db->prepare("
-                INSERT INTO lotes
+                INSERT INTO acopios
                     (codigo, tipo_cafe_id, productor_id, fecha_acopio, campaña,
                      peso_inicial_kg, peso_actual_kg, peso_bruto_kg,
                      sacos, humedad_entrada_pct, rend_entrada_pct,
@@ -174,12 +174,12 @@ class LoteController {
                 ':proceso_beneficio'   => $data['proceso_beneficio']    ?? 'lavado',
                 ':notas'               => $data['notas']                ?? null,
             ]);
-            $loteId = Database::lastId($this->db, 'lotes');
+            $loteId = Database::lastId($this->db, 'acopios');
 
             // Entrada automática en kardex
             $stmtK = $this->db->prepare("
                 INSERT INTO kardex
-                    (lote_id, tipo_movimiento, concepto, fecha, cantidad_kg,
+                    (acopio_id, tipo_movimiento, concepto, fecha, cantidad_kg,
                      precio_unitario, moneda, tipo_cambio, prima_diferencial, referencia_tipo, usuario)
                 VALUES
                     (:lote_id, 'entrada', :concepto, :fecha, :cantidad_kg,
@@ -200,8 +200,8 @@ class LoteController {
             // Certificaciones (si vienen en el payload)
             if (!empty($data['certificaciones'])) {
                 $stmtC = $this->db->prepare("
-                    INSERT INTO lote_certificaciones
-                        (lote_id, certificacion_id, fecha_inicio, fecha_vencimiento, numero_certificado)
+                    INSERT INTO acopio_certificaciones
+                        (acopio_id, certificacion_id, fecha_inicio, fecha_vencimiento, numero_certificado)
                     VALUES (:lote_id, :cert_id, :fi, :fv, :num)
                 ");
                 foreach ($data['certificaciones'] as $cert) {
@@ -229,7 +229,7 @@ class LoteController {
         $data = json_decode(file_get_contents('php://input'), true);
 
         $stmt = $this->db->prepare("
-            UPDATE lotes SET
+            UPDATE acopios SET
                 tipo_cafe_id = :tipo_cafe_id,
                 fecha_acopio = :fecha_acopio,
                 region = :region, finca = :finca,
@@ -259,8 +259,8 @@ class LoteController {
         $data = json_decode(file_get_contents('php://input'), true);
 
         $stmt = $this->db->prepare("
-            INSERT INTO lote_certificaciones
-                (lote_id, certificacion_id, fecha_inicio, fecha_vencimiento, numero_certificado)
+            INSERT INTO acopio_certificaciones
+                (acopio_id, certificacion_id, fecha_inicio, fecha_vencimiento, numero_certificado)
             VALUES (:lote_id, :cert_id, :fi, :fv, :num)
             ON DUPLICATE KEY UPDATE
                 fecha_inicio = VALUES(fecha_inicio),
@@ -288,7 +288,7 @@ class LoteController {
             return;
         }
 
-        $lote = $this->db->prepare("SELECT * FROM lotes WHERE id = :id");
+        $lote = $this->db->prepare("SELECT * FROM acopios WHERE id = :id");
         $lote->execute([':id' => $params['id']]);
         $loteData = $lote->fetch();
 
@@ -303,7 +303,7 @@ class LoteController {
             // Registrar transformación
             $stmtT = $this->db->prepare("
                 INSERT INTO transformaciones
-                    (lote_origen_id, tipo_transformacion, fecha, peso_entrada_kg, peso_salida_kg, operador, notas)
+                    (acopio_origen_id, tipo_transformacion, fecha, peso_entrada_kg, peso_salida_kg, operador, notas)
                 VALUES (:origen_id, :tipo, :fecha, :entrada, :salida, :op, :notas)
             ");
             $stmtT->execute([
@@ -321,7 +321,7 @@ class LoteController {
             $merma = $loteData['peso_actual_kg'] - $data['peso_salida_kg'];
             $stmtK = $this->db->prepare("
                 INSERT INTO kardex
-                    (lote_id, tipo_movimiento, concepto, fecha, cantidad_kg,
+                    (acopio_id, tipo_movimiento, concepto, fecha, cantidad_kg,
                      referencia_id, referencia_tipo, usuario)
                 VALUES (:lote_id, 'transformacion', :concepto, :fecha, :kg,
                         :ref_id, 'transformacion', :usuario)
@@ -337,7 +337,7 @@ class LoteController {
 
             // Actualizar peso_final_kg del lote
             $stmtU = $this->db->prepare("
-                UPDATE lotes
+                UPDATE acopios
                 SET peso_final_kg = :pf, estado = 'disponible'
                 WHERE id = :id
             ");
@@ -346,7 +346,7 @@ class LoteController {
             // Re-entrada con el peso transformado
             $stmtRe = $this->db->prepare("
                 INSERT INTO kardex
-                    (lote_id, tipo_movimiento, concepto, fecha, cantidad_kg,
+                    (acopio_id, tipo_movimiento, concepto, fecha, cantidad_kg,
                      referencia_id, referencia_tipo, usuario)
                 VALUES (:lote_id, 'entrada', :concepto, :fecha, :kg,
                         :ref_id, 'transformacion', :usuario)
@@ -376,7 +376,7 @@ class LoteController {
 
     private function generarCodigo(int $anio): string {
         $stmt = $this->db->prepare("
-            SELECT COUNT(*) + 1 AS siguiente FROM lotes WHERE campaña = :anio
+            SELECT COUNT(*) + 1 AS siguiente FROM acopios WHERE campaña = :anio
         ");
         $stmt->execute([':anio' => $anio]);
         $n = (int)$stmt->fetchColumn();
