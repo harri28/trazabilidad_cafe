@@ -44,6 +44,18 @@ No hay un dominio compartido con rutas por proyecto (a diferencia del XAMPP loca
 
 Vhost de este proyecto: `/etc/apache2/sites-available/trazabcafe.cloud.conf` (HTTP→HTTPS redirect, generado por certbot) + `trazabcafe.cloud-le-ssl.conf` (HTTPS, con el `<FilesMatch \.php$>` que enruta a PHP-FPM). `DocumentRoot` es la raíz del proyecto (`/var/www/trazabilidad_cafe`), con `Options -Indexes` (el listado de directorios estaba expuesto públicamente al inicio — incluía los `.docx`/`.xlsx` internos — ya corregido). La raíz (`/`) redirige a `/public/` (login del sistema) vía `RedirectMatch ^/$ /public/` en el vhost SSL.
 
+## Usuarios del frontend (`public/login.php`)
+
+Almacenados en `public/config/users.php` (contraseñas con bcrypt vía `password_hash`). Para agregar uno nuevo: `php -r "echo password_hash('clave', PASSWORD_DEFAULT);"` y pegar el hash ahí.
+
+| Usuario | Contraseña | Rol |
+|---|---|---|
+| `harris` | *(no registrada aquí)* | Administrador |
+| `admin` | *(no registrada aquí)* | Administrador |
+| `alexander2026` | `alexander2026@` | Administrador |
+
+⚠️ El repo es público — cualquiera con el link puede ver esta contraseña en texto plano. Decisión explícita del dueño del proyecto (2026-08-24): mantenerlo simple antes que agregar gestión de secretos.
+
 ## Base de datos
 
 - **Motor:** PostgreSQL (ya instalado y activo en el VPS)

@@ -17,4 +17,11 @@ return array (
     'rol' => 'Administrador',
     'email' => 'harristr045@gmail.com',
   ),
+  'alexander2026' =>
+  array (
+    'password' => '$2y$10$N5dX9Z/jxeKn9wFay4EUauxDQnKi96SQXK/P5qsWGze2H2VGSdAYu',
+    'nombre' => 'Alexander',
+    'rol' => 'Administrador',
+    'email' => 'harristr045@gmail.com',
+  ),
 );
