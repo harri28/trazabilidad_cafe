@@ -22,8 +22,9 @@ class Router {
         }
 
         $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        // Quitar prefijo /trazabilidad_cafe/api
-        $uri = preg_replace('#^/trazabilidad_cafe/api#', '', $uri);
+        // Quitar prefijo /api, con o sin /trazabilidad_cafe delante
+        // (local: /trazabilidad_cafe/api/... — VPS con dominio propio: /api/...)
+        $uri = preg_replace('#^(/trazabilidad_cafe)?/api#', '', $uri);
         $uri = '/' . trim($uri, '/');
 
         foreach ($this->routes as $route) {
