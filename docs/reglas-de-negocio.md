@@ -42,7 +42,7 @@ No hay un dominio compartido con rutas por proyecto (a diferencia del XAMPP loca
 | `corfiemsistem.com` | structure (Django, proxy a `127.0.0.1:8000`) | N/A |
 | `trazabcafe.cloud` | **trazabilidad_cafe** (este sistema) | **8.2.12 (PHP-FPM propio)** |
 
-Vhost de este proyecto: `/etc/apache2/sites-available/trazabcafe.cloud.conf` (HTTP→HTTPS redirect, generado por certbot) + `trazabcafe.cloud-le-ssl.conf` (HTTPS, con el `<FilesMatch \.php$>` que enruta a PHP-FPM). `DocumentRoot` es la raíz del proyecto (`/var/www/trazabilidad_cafe`), con `Options -Indexes` (el listado de directorios estaba expuesto públicamente al inicio — incluía los `.docx`/`.xlsx` internos — ya corregido).
+Vhost de este proyecto: `/etc/apache2/sites-available/trazabcafe.cloud.conf` (HTTP→HTTPS redirect, generado por certbot) + `trazabcafe.cloud-le-ssl.conf` (HTTPS, con el `<FilesMatch \.php$>` que enruta a PHP-FPM). `DocumentRoot` es la raíz del proyecto (`/var/www/trazabilidad_cafe`), con `Options -Indexes` (el listado de directorios estaba expuesto públicamente al inicio — incluía los `.docx`/`.xlsx` internos — ya corregido). La raíz (`/`) redirige a `/public/` (login del sistema) vía `RedirectMatch ^/$ /public/` en el vhost SSL.
 
 ## Base de datos
 
