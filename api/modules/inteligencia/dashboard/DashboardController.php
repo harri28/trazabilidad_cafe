@@ -11,7 +11,7 @@ class DashboardController
 
     public function __construct()
     {
-        $this->db = Database::getConnection();
+        $this->db = (new Database())->getConnection();
     }
 
     public function index(): void
