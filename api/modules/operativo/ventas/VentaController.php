@@ -360,12 +360,12 @@ class VentaController {
         $stmt = $this->db->prepare("
             SELECT
                 COUNT(*)                                   AS total_contratos,
-                SUM(CASE WHEN estado = 'confirmado'   THEN 1 ELSE 0 END) AS confirmados,
-                SUM(CASE WHEN estado = 'entregado'    THEN 1 ELSE 0 END) AS entregados,
-                SUM(CASE WHEN estado = 'en_proceso'   THEN 1 ELSE 0 END) AS en_proceso,
-                ROUND(SUM(CASE WHEN estado != 'cancelado' THEN cantidad_kg  ELSE 0 END), 2) AS kg_totales,
-                ROUND(SUM(CASE WHEN estado != 'cancelado' THEN total_usd    ELSE 0 END), 2) AS usd_totales,
-                ROUND(AVG(CASE WHEN estado != 'cancelado' THEN precio_usd_kg ELSE NULL END), 4) AS precio_promedio_usd
+                SUM(CASE WHEN v.estado = 'confirmado'   THEN 1 ELSE 0 END) AS confirmados,
+                SUM(CASE WHEN v.estado = 'entregado'    THEN 1 ELSE 0 END) AS entregados,
+                SUM(CASE WHEN v.estado = 'en_proceso'   THEN 1 ELSE 0 END) AS en_proceso,
+                ROUND(SUM(CASE WHEN v.estado != 'cancelado' THEN cantidad_kg  ELSE 0 END), 2) AS kg_totales,
+                ROUND(SUM(CASE WHEN v.estado != 'cancelado' THEN total_usd    ELSE 0 END), 2) AS usd_totales,
+                ROUND(AVG(CASE WHEN v.estado != 'cancelado' THEN precio_usd_kg ELSE NULL END), 4) AS precio_promedio_usd
             FROM ventas v
             JOIN acopios l ON l.id = v.acopio_id
             WHERE l.campaña = :campana
@@ -383,7 +383,7 @@ class VentaController {
             JOIN clientes c ON c.id = v.comprador_id
             JOIN acopios l    ON l.id  = v.acopio_id
             WHERE v.estado != 'cancelado' AND l.campaña = :campana
-            GROUP BY v.comprador_id
+            GROUP BY c.id, c.razon_social, c.pais_destino
             ORDER BY usd_total DESC
             LIMIT 10
         ");

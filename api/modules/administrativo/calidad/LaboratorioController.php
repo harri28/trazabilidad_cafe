@@ -202,7 +202,7 @@ class LaboratorioController {
             JOIN acopios l    ON l.id = la.acopio_id
             JOIN clientes c ON c.id = l.productor_id
             WHERE l.campaña = :campana
-            GROUP BY l.variedad, l.productor_id
+            GROUP BY l.campaña, l.variedad, l.productor_id, c.razon_social
             ORDER BY score_promedio DESC
         ");
         $stmt->execute([':campana' => $campana]);

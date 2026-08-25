@@ -74,7 +74,7 @@ class ValorizacionController
             WHERE l.campaña = :campana
               AND l.estado  NOT IN ('vendido')
               AND k.precio_unitario IS NOT NULL
-            GROUP BY l.id
+            GROUP BY l.id, tc.id, c.id
             ORDER BY tc.nombre, l.codigo
         ");
         $stmt->execute([':campana' => $campana]);

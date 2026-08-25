@@ -163,7 +163,7 @@ class PlanMaestroController
                                 AND l.estado      NOT IN ('vendido')
             LEFT JOIN ventas v  ON v.acopio_id      = l.id
             WHERE pm.campaña = :campana
-            GROUP BY pm.id
+            GROUP BY pm.id, tc.id
         ");
         $stmt->execute([':campana' => $campana]);
         Response::json(['campana' => $campana, 'mrp' => $stmt->fetchAll()]);

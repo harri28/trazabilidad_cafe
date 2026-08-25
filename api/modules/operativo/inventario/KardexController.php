@@ -155,7 +155,7 @@ class KardexController {
             JOIN acopios l    ON l.id = k.acopio_id
             JOIN clientes c ON c.id  = l.productor_id
             WHERE k.tipo_movimiento = 'entrada' AND l.campaña = :campana
-            GROUP BY l.id, k.moneda
+            GROUP BY l.id, c.id, k.moneda
             ORDER BY c.razon_social, l.codigo
         ");
         $stmt->execute([':campana' => $campana]);
