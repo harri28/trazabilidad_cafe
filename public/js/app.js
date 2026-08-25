@@ -632,15 +632,17 @@ function cerrarDrawer() {
 
 function editarClienteDesdeDrawer() {
   if (!_idValido(_drawerClienteId)) return;
+  const id = _drawerClienteId;
   cerrarDrawer();
-  abrirFormCliente(_drawerClienteId);
+  abrirFormCliente(id);
 }
 
 function eliminarClienteDesdeDrawer() {
   if (!_idValido(_drawerClienteId)) return;
+  const id     = _drawerClienteId;
   const nombre = document.getElementById('drawer-cli-nombre').textContent;
   cerrarDrawer();
-  confirmarEliminarCliente(_drawerClienteId, nombre);
+  confirmarEliminarCliente(id, nombre);
 }
 
 function confirmarEliminarCliente(id, nombre) {
