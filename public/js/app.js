@@ -195,13 +195,19 @@ function fmtUSD(n) {
 }
 
 async function api(method, path, data = null) {
+  let res;
   try {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (data) opts.body = JSON.stringify(data);
-    const res = await fetch(API + path, opts);
-    return await res.json();
+    res = await fetch(API + path, opts);
   } catch (e) {
     return { success: false, error: 'Error de red: ' + e.message };
+  }
+  try {
+    return await res.json();
+  } catch {
+    // El servidor respondió pero no con JSON (ej: página de error del propio Apache/PHP-FPM)
+    return { success: false, error: `El servidor respondió con un error inesperado (HTTP ${res.status}). Intenta de nuevo en unos segundos.` };
   }
 }
 
@@ -414,6 +420,12 @@ function _renderTopDestinos(rows) {
 ══════════════════════════════════════════════════════════ */
 let _drawerClienteId = null;
 
+// Válido si es un id real (número/string no vacío) y no las cadenas literales "null"/"undefined"
+// que aparecen cuando un valor null/undefined se interpola directo en un atributo HTML sin comillas.
+function _idValido(id) {
+  return id !== null && id !== undefined && id !== '' && id !== 'null' && id !== 'undefined';
+}
+
 function setCliTab(btn) {
   document.querySelectorAll('.cli-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -619,13 +631,13 @@ function cerrarDrawer() {
 }
 
 function editarClienteDesdeDrawer() {
-  if (!_drawerClienteId) return;
+  if (!_idValido(_drawerClienteId)) return;
   cerrarDrawer();
   abrirFormCliente(_drawerClienteId);
 }
 
 function eliminarClienteDesdeDrawer() {
-  if (!_drawerClienteId) return;
+  if (!_idValido(_drawerClienteId)) return;
   const nombre = document.getElementById('drawer-cli-nombre').textContent;
   cerrarDrawer();
   confirmarEliminarCliente(_drawerClienteId, nombre);
@@ -637,6 +649,10 @@ function confirmarEliminarCliente(id, nombre) {
 }
 
 async function eliminarCliente(id) {
+  if (id === null || id === undefined || id === 'null' || id === 'undefined' || id === '') {
+    toast('No se pudo identificar el cliente a eliminar. Recarga la página e intenta de nuevo.', true);
+    return;
+  }
   const res = await api('DELETE', `/clientes/${id}`);
   if (res.success) {
     toast('Cliente eliminado');
