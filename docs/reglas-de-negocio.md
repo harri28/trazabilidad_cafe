@@ -61,6 +61,13 @@ Almacenados en `public/config/users.php` (contraseñas con bcrypt vía `password
 - **Motor:** PostgreSQL (ya instalado y activo en el VPS)
 - **Base:** `trazabilidad_cafe`
 - **Usuario/contraseña:** `postgresql` / `1234` (mismas credenciales en local y en VPS, por decisión explícita — no son seguras para un entorno público, pero se mantiene simple a propósito)
+- **Datos reales cargados** (2026-08-24): `database/datos_produccion.sql` — dump `--data-only --column-inserts` de clientes/acopios/ventas/kardex/etc. de la BD local. **Nunca lo subas al repo sin avisar** — contiene datos reales de clientes (nombres, RUC/DNI). Se decidió subirlo al repo público de todas formas por decisión explícita del dueño.
+
+### ⚠️ Al recargar datos con pg_dump: usar `sudo -u postgres`, no el rol `postgresql`
+
+El rol de aplicación `postgresql` **no es superusuario** y no puede desactivar los triggers de sistema (`RI_ConstraintTrigger_*` de las foreign keys) — `pg_dump --disable-triggers` falla en silencio con "permission denied" para cada tabla si se carga con ese rol, dejando triggers de negocio activos (duplican `acopio_eventos`, recalculan mal `peso_actual_kg`/`saldo_kg`) y puede dejar la carga a medias. **Siempre cargar dumps de datos con `sudo -u postgres psql ...`** (superusuario), nunca con `PGPASSWORD=1234 psql -U postgresql ...`.
+
+También: usar `pg_dump --column-inserts` en vez del formato `COPY` por defecto — se detectaron errores raros ("relation does not exist") al restaurar un dump en formato `COPY` generado con `pg_dump` 17 contra un servidor más viejo; con `--column-inserts` (INSERT explícitos) no pasó.
 
 ### ⚠️ Esquema real: `acopios`, no `lotes`
 
