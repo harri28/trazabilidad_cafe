@@ -1246,7 +1246,10 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
                 <div class="cfg-card-desc">PNG, JPG, WEBP o SVG — máximo 2 MB. Reemplaza el ícono ☕ en el menú lateral y el login.</div>
                 <input type="file" id="cfg-logo-input" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="margin-top:8px">
               </div>
-              <button class="btn btn-primary btn-sm" onclick="subirLogoSistema()">⬆️ Subir</button>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <button class="btn btn-primary btn-sm" onclick="subirLogoSistema()">⬆️ Subir</button>
+                <button class="btn btn-ghost btn-sm" onclick="restablecerLogoSistema()">↺ Restablecer</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1263,7 +1266,10 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
                   <span class="cfg-moneda">PEN / USD</span>
                 </div>
               </div>
-              <button class="btn btn-ghost btn-sm" onclick="editarTasaDolar()">✏️ Editar</button>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <button class="btn btn-ghost btn-sm" onclick="editarTasaDolar()">✏️ Editar</button>
+                <button class="btn btn-ghost btn-sm" onclick="restablecerConfiguracion(['tasa_usd','tasa_eur'])">↺ Restablecer</button>
+              </div>
             </div>
           </div>
         </div>

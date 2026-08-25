@@ -2968,6 +2968,42 @@ async function subirLogoSistema() {
   }
 }
 
+function _quitarLogo() {
+  document.querySelectorAll('.js-logo-img').forEach(img => { img.src = ''; img.style.display = 'none'; });
+  document.querySelectorAll('.js-logo-fallback').forEach(el => { el.style.display = ''; });
+}
+
+async function restablecerLogoSistema() {
+  if (!confirm('¿Restablecer el logo al ícono predeterminado (☕)?')) return;
+  try {
+    const res = await fetch(`${API}/configuracion/logo`, { method: 'DELETE' });
+    if (!res.ok) throw new Error();
+    _quitarLogo();
+    const input = document.getElementById('cfg-logo-input');
+    if (input) input.value = '';
+    toast('Logo restablecido');
+  } catch {
+    toast('No se pudo restablecer el logo', true);
+  }
+}
+
+/* ── Restablecer configuración a valores predeterminados ──── */
+async function restablecerConfiguracion(claves) {
+  if (!confirm('¿Restablecer estos valores a los predeterminados de fábrica?')) return;
+  try {
+    const res = await fetch(`${API}/configuracion/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ claves })
+    });
+    if (!res.ok) throw new Error();
+    toast('Configuración restablecida');
+    cargarConfiguracion();
+  } catch {
+    toast('No se pudo restablecer la configuración', true);
+  }
+}
+
 /* ── Campañas: topbar ────────────────────────────────────── */
 async function cargarCampanasTopbar() {
   const sel = document.getElementById('topbar-campana');

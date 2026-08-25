@@ -124,4 +124,51 @@ class ConfiguracionController
 
         Response::json(['clave' => 'logo_url', 'valor' => $url, 'updated' => true]);
     }
+
+    // DELETE /configuracion/logo — vuelve al ícono ☕ por defecto
+    public function eliminarLogo(): void
+    {
+        $dir = __DIR__ . '/../../../public/uploads';
+        foreach (glob($dir . '/logo.*') as $archivo) {
+            unlink($archivo);
+        }
+
+        $stmt = $this->db->prepare("DELETE FROM configuracion WHERE clave = 'logo_url'");
+        $stmt->execute();
+
+        Response::json(['message' => 'Logo restablecido al predeterminado']);
+    }
+
+    // POST /configuracion/reset  { claves: ['tasa_usd','tasa_eur'] }
+    // Restablece una o más configuraciones a su valor predeterminado de fábrica.
+    public function reset(): void
+    {
+        $defaults = [
+            'tasa_usd' => ['valor' => '3.7500', 'descripcion' => 'Tipo de cambio USD → PEN'],
+            'tasa_eur' => ['valor' => '4.0500', 'descripcion' => 'Tipo de cambio EUR → PEN'],
+        ];
+
+        $data   = json_decode(file_get_contents('php://input'), true) ?? [];
+        $claves = $data['claves'] ?? array_keys($defaults);
+
+        $stmt = $this->db->prepare("
+            INSERT INTO configuracion (clave, valor, descripcion, actualizado_en)
+            VALUES (:clave, :valor, :desc, NOW())
+            ON CONFLICT (clave)
+            DO UPDATE SET valor = EXCLUDED.valor, descripcion = EXCLUDED.descripcion, actualizado_en = NOW()
+        ");
+
+        $restablecidas = [];
+        foreach ($claves as $clave) {
+            if (!isset($defaults[$clave])) continue;
+            $stmt->execute([
+                ':clave' => $clave,
+                ':valor' => $defaults[$clave]['valor'],
+                ':desc'  => $defaults[$clave]['descripcion'],
+            ]);
+            $restablecidas[$clave] = $defaults[$clave]['valor'];
+        }
+
+        Response::json(['message' => 'Configuración restablecida', 'valores' => $restablecidas]);
+    }
 }
