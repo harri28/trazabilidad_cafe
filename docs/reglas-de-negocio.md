@@ -29,6 +29,7 @@ En su lugar, PHP **8.2.12 está compilado desde código fuente**:
 - El PHP 7.4 del sistema **no se tocó** — sigue sirviendo a farmacia/industria_mg/kallparoom normalmente.
 - El servicio systemd (`/etc/systemd/system/php8.2-fpm.service`) tenía por defecto `ProtectSystem=full`, lo cual bloqueaba la escritura de logs/PID bajo `/usr/local/php8.2` (todo lo que cuelga de `/usr` queda de solo lectura con esa directiva) — **se eliminó esa línea**. Si se reinstala o reconfigura el servicio en el futuro, recordar quitarla de nuevo.
 - Para recompilar o actualizar: fuente en `/usr/local/src/php-8.2.12/`.
+- **`php.ini` no existía** hasta 2026-08-24 (la compilación no genera uno solo). Sin él, PHP usaba defaults de fábrica: `display_errors = STDOUT` — en FPM esto puede filtrar warnings/notices directo al cuerpo de la respuesta HTTP, corrompiendo el JSON (mismo síntoma que el bug del pool: `Unexpected token '<'`). Se copió `/usr/local/src/php-8.2.12/php.ini-production` a `/usr/local/php8.2/etc/php.ini` con `display_errors = Off`, `log_errors = On`, `error_log = /var/log/php8.2/php_errors.log`. **Revisar ese log** ante cualquier respuesta rota que no sea claramente un 4xx/5xx en Network tab.
 
 ### ⚠️ Pool de PHP-FPM: `pm.max_children` en `/usr/local/php8.2/etc/php-fpm.d/www.conf`
 
