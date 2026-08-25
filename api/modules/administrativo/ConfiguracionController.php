@@ -66,4 +66,62 @@ class ConfiguracionController
 
         Response::json(['clave' => $clave, 'valor' => $valor, 'updated' => true]);
     }
+
+    // POST /configuracion/logo  (multipart/form-data, campo "logo")
+    public function uploadLogo(): void
+    {
+        if (empty($_FILES['logo']) || $_FILES['logo']['error'] !== UPLOAD_ERR_OK) {
+            Response::error('Archivo "logo" es requerido', 422);
+            return;
+        }
+
+        $archivo = $_FILES['logo'];
+        $permitidos = [
+            'image/png'     => 'png',
+            'image/jpeg'    => 'jpg',
+            'image/webp'    => 'webp',
+            'image/svg+xml' => 'svg',
+        ];
+        $mime = mime_content_type($archivo['tmp_name']);
+        if (!isset($permitidos[$mime])) {
+            Response::error('Formato no soportado. Usa PNG, JPG, WEBP o SVG', 422);
+            return;
+        }
+        if ($archivo['size'] > 2 * 1024 * 1024) {
+            Response::error('El logo no puede superar 2 MB', 422);
+            return;
+        }
+
+        $dir = __DIR__ . '/../../../public/uploads';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        // Borrar logos anteriores con otra extensión
+        foreach (glob($dir . '/logo.*') as $anterior) {
+            unlink($anterior);
+        }
+
+        $ext      = $permitidos[$mime];
+        $destino  = "{$dir}/logo.{$ext}";
+        if (!move_uploaded_file($archivo['tmp_name'], $destino)) {
+            Response::error('No se pudo guardar el archivo', 500);
+            return;
+        }
+
+        // Ruta relativa (sin "/" inicial): se resuelve relativa a la página actual
+        // (public/index.php o public/login.php), que siempre vive junto a uploads/,
+        // tanto en local (/trazabilidad_cafe/public/) como en VPS (/public/).
+        $url = "uploads/logo.{$ext}?v=" . time();
+
+        $stmt = $this->db->prepare("
+            INSERT INTO configuracion (clave, valor, descripcion, actualizado_en)
+            VALUES ('logo_url', :valor, 'URL del logo del sistema', NOW())
+            ON CONFLICT (clave)
+            DO UPDATE SET valor = EXCLUDED.valor, actualizado_en = NOW()
+        ");
+        $stmt->execute([':valor' => $url]);
+
+        Response::json(['clave' => 'logo_url', 'valor' => $url, 'updated' => true]);
+    }
 }

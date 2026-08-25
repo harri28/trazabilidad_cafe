@@ -2,7 +2,9 @@
    SISTEMA DE TRAZABILIDAD DE CAFÉ — Frontend JS
    ============================================================ */
 
-const API = '/trazabilidad_cafe/api';
+// Local (XAMPP compartido): /trazabilidad_cafe/public/... -> API en /trazabilidad_cafe/api
+// VPS (dominio propio): /public/... -> API en /api
+const API = location.pathname.startsWith('/trazabilidad_cafe/') ? '/trazabilidad_cafe/api' : '/api';
 
 /* ── Estado global laboratorio ───────────────────────────── */
 let _labProductorId = null;
@@ -2906,6 +2908,45 @@ async function cargarConfiguracion() {
   } catch {
     const cached = localStorage.getItem('tasa_usd');
     if (cached) _aplicarTasaUSD(parseFloat(cached));
+  }
+  cargarLogoSistema();
+}
+
+/* ── Logo del sistema ────────────────────────────────────── */
+function _aplicarLogo(url) {
+  document.querySelectorAll('.js-logo-img').forEach(img => {
+    img.src = url;
+    img.style.display = '';
+  });
+  document.querySelectorAll('.js-logo-fallback').forEach(el => { el.style.display = 'none'; });
+}
+
+async function cargarLogoSistema() {
+  try {
+    const res = await fetch(`${API}/configuracion/logo_url`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    if (data.valor) _aplicarLogo(data.valor);
+  } catch { /* sin logo configurado, se queda el emoji por defecto */ }
+}
+
+async function subirLogoSistema() {
+  const input = document.getElementById('cfg-logo-input');
+  const file  = input?.files?.[0];
+  if (!file) { toast('Selecciona una imagen primero', true); return; }
+  if (file.size > 2 * 1024 * 1024) { toast('El logo no puede superar 2 MB', true); return; }
+
+  const fd = new FormData();
+  fd.append('logo', file);
+
+  try {
+    const res = await fetch(`${API}/configuracion/logo`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok || data.success === false) throw new Error(data.error || 'Error al subir el logo');
+    _aplicarLogo(data.data?.valor || data.valor);
+    toast('Logo actualizado');
+  } catch (e) {
+    toast(e.message || 'Error al subir el logo', true);
   }
 }
 

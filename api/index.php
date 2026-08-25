@@ -194,6 +194,7 @@ $router->post('/seguridad/log',            fn()   => (new AuditoriaController())
 
 // ── CONFIGURACIÓN ─────────────────────────────────────────
 $router->get('/configuracion',           fn()   => (new ConfiguracionController())->index());
+$router->post('/configuracion/logo',     fn()   => (new ConfiguracionController())->uploadLogo());
 $router->get('/configuracion/{clave}',   fn($p) => (new ConfiguracionController())->show($p));
 $router->put('/configuracion/{clave}',   fn($p) => (new ConfiguracionController())->upsert($p));
 

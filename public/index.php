@@ -20,7 +20,8 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
 <!-- ══════════ SIDEBAR ══════════════════════════════════════ -->
 <aside id="sidebar">
   <div class="sidebar-logo">
-    <div class="icon">☕</div>
+    <div class="icon js-logo-fallback">☕</div>
+    <img class="js-logo-img" src="" alt="Logo" style="display:none;width:36px;height:36px;border-radius:8px;object-fit:cover">
     <div>
       <div class="brand-text">Trazabilidad <span>Café</span></div>
       <div class="brand-sub">Sistema de Gestión</div>
@@ -1232,6 +1233,23 @@ $v_js  = filemtime(__DIR__ . '/js/app.js');
 
       <!-- ── Tab: General ─────────────────────────────────────── -->
       <div id="cfg-tab-general">
+        <div class="cfg-group">
+          <div class="cfg-group-title">🖼️ Logo del Sistema</div>
+          <div class="cfg-cards">
+            <div class="cfg-card">
+              <div class="cfg-card-icon">
+                <img class="js-logo-img" src="" alt="Logo" style="display:none;max-width:48px;max-height:48px;border-radius:8px">
+                <span class="js-logo-fallback">☕</span>
+              </div>
+              <div class="cfg-card-body">
+                <div class="cfg-card-label">Logo del sistema</div>
+                <div class="cfg-card-desc">PNG, JPG, WEBP o SVG — máximo 2 MB. Reemplaza el ícono ☕ en el menú lateral y el login.</div>
+                <input type="file" id="cfg-logo-input" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="margin-top:8px">
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="subirLogoSistema()">⬆️ Subir</button>
+            </div>
+          </div>
+        </div>
         <div class="cfg-group">
           <div class="cfg-group-title">💱 Divisas</div>
           <div class="cfg-cards">

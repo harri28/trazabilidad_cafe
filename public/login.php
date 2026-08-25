@@ -119,7 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="card">
   <div class="logo">
-    <div class="icon">☕</div>
+    <div class="icon js-logo-fallback">☕</div>
+    <img class="js-logo-img" src="" alt="Logo" style="display:none;max-width:64px;max-height:64px;border-radius:10px;margin:0 auto">
     <h1>Trazabilidad Café</h1>
     <p>Sistema de Gestión</p>
   </div>
@@ -148,6 +149,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>
+(function () {
+  const API = location.pathname.startsWith('/trazabilidad_cafe/') ? '/trazabilidad_cafe/api' : '/api';
+  fetch(`${API}/configuracion/logo_url`)
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      if (!data.valor) return;
+      document.querySelectorAll('.js-logo-img').forEach(img => { img.src = data.valor; img.style.display = ''; });
+      document.querySelectorAll('.js-logo-fallback').forEach(el => { el.style.display = 'none'; });
+    })
+    .catch(() => { /* sin logo configurado, se queda el emoji por defecto */ });
+})();
+
 function togglePw() {
   const input = document.getElementById('password');
   const btn   = document.querySelector('.toggle-pw');
