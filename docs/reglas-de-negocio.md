@@ -30,6 +30,17 @@ En su lugar, PHP **8.2.12 está compilado desde código fuente**:
 - El servicio systemd (`/etc/systemd/system/php8.2-fpm.service`) tenía por defecto `ProtectSystem=full`, lo cual bloqueaba la escritura de logs/PID bajo `/usr/local/php8.2` (todo lo que cuelga de `/usr` queda de solo lectura con esa directiva) — **se eliminó esa línea**. Si se reinstala o reconfigura el servicio en el futuro, recordar quitarla de nuevo.
 - Para recompilar o actualizar: fuente en `/usr/local/src/php-8.2.12/`.
 
+### ⚠️ Pool de PHP-FPM: `pm.max_children` en `/usr/local/php8.2/etc/php-fpm.d/www.conf`
+
+El valor por defecto de la compilación (`pm.max_children = 5`) es **demasiado bajo** para este sitio — cada carga de página dispara 3-4 peticiones paralelas (dashboard, campañas, configuración, logo), y el servidor recibe tráfico constante de bots escaneando (`AH01071: Got error 'Primary script unknown'` en el error log, ruido normal de internet). Con solo 5 procesos, el pool se satura rápido y Apache devuelve una página de error HTML en vez de esperar a PHP — en el frontend esto se ve como `Error de red: Unexpected token '<'...` **en cualquier módulo, de forma intermitente**, sin ningún error real en el código.
+
+Configuración actual (2026-08-24): `pm.max_children = 20`, `pm.start_servers = 4`, `pm.min_spare_servers = 2`, `pm.max_spare_servers = 8`. Verificado con 15 peticiones concurrentes sin fallos. Si el error "Unexpected token '<'" vuelve a aparecer de forma intermitente, **revisar esto primero** antes de sospechar de un bug de código:
+```bash
+ps aux | grep "php-fpm: pool www" | grep -v grep | wc -l   # cuántos workers activos
+tail -30 /var/log/apache2/trazabcafe_error.log              # buscar "Primary script unknown" o 503 en el momento del fallo
+systemctl restart php8.2-fpm                                 # tras editar www.conf
+```
+
 ### Vhosts de Apache — cada proyecto con su propio dominio
 
 No hay un dominio compartido con rutas por proyecto (a diferencia del XAMPP local) — cada uno tiene dominio y vhost propios:
